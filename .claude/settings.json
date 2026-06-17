@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\node_modules\" -Directory | Where-Object Name -in @\\('material-symbols','sortablejs'\\) | Select-Object Name; Get-ChildItem \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\node_modules\\\\@fontsource-variable\" -Directory | Select-Object Name 2>$null)",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\resources\\\\views\\\\livewire\\\\admin\\\\predictions\")",
+      "Bash(npm run *)",
+      "Bash(node -e \"const s = require\\('./node_modules/sortablejs/Sortable.min.js'\\); console.log\\('sortablejs ok'\\);\")",
+      "Bash(dir \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\public\\\\build\\\\assets\" /b)",
+      "Bash(findstr \".js\")",
+      "Bash(php -l resources/views/livewire/squad/builder.blade.php)",
+      "Bash(php -l app/Jobs/ScoreFixtureJob.php)",
+      "Bash(php -l \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\database\\\\seeders\\\\TestPlaythroughSeeder.php\")",
+      "Bash(php -l \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\resources\\\\views\\\\livewire\\\\mini-league.blade.php\")",
+      "Bash(php -l \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\resources\\\\views\\\\livewire\\\\dashboard.blade.php\")",
+      "Bash(php -l \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\database\\\\migrations\\\\2026_06_04_175405_add_faculty_and_tokens_to_users_table.php\")",
+      "Bash(grep -oE '[a-z_]+$')",
+      "Bash(grep -oE \"'[a-z_]+'$\")",
+      "Bash(grep -oE \"'[a-z_]{3,}'\")",
+      "Bash(cd \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\")",
+      "Bash(ls -la node_modules/material-symbols/*.woff2)",
+      "Bash(head -40 node_modules/material-symbols/outlined.css)",
+      "Bash(pyftsubset node_modules/material-symbols/material-symbols-outlined.woff2 --output-file=resources/fonts/material-symbols-outlined-subset.woff2 --flavor=woff2 --layout-features=* --text-file=resources/fonts/material-symbols-icons.txt --no-hinting)",
+      "Bash(python -m fontTools.subset node_modules/material-symbols/material-symbols-outlined.woff2 --output-file=resources/fonts/material-symbols-outlined-subset.woff2 --flavor=woff2 --layout-features=* --text-file=resources/fonts/material-symbols-icons.txt --no-hinting)",
+      "Bash(python -m pip install --quiet brotli)",
+      "Bash(python -m fontTools.subset node_modules/material-symbols/material-symbols-outlined.woff2 --output-file=/tmp/t1.woff2 --flavor=woff2 --layout-features=liga --text-file=/tmp/tiny.txt --no-hinting)",
+      "Read(//tmp/**)",
+      "Bash(awk '{print $5, \"bytes\"}')",
+      "Bash(python -m fontTools.subset node_modules/material-symbols/material-symbols-outlined.woff2 --output-file=/tmp/t2.woff2 --flavor=woff2 --layout-features=liga --layout-closure=none --text-file=/tmp/tiny.txt --no-hinting)",
+      "Bash(python -m fontTools.subset node_modules/material-symbols/material-symbols-outlined.woff2 --output-file=/tmp/real.woff2 --flavor=woff2 --layout-features=liga --text-file=resources/fonts/material-symbols-icons.txt --no-hinting)",
+      "Bash(python -c \"from fontTools.ttLib import TTFont; f=TTFont\\('/tmp/real.woff2'\\); print\\(f['maxp'].numGlyphs, 'glyphs'\\)\")",
+      "Bash(python -)",
+      "Bash(powershell.exe -NoProfile -Command \"\\(Get-Content .env\\) -replace '^APP_DEBUG=true','APP_DEBUG=false' | Set-Content .env -Encoding utf8\")",
+      "Bash(rm -f resources/fonts/_resolved_glyphs.txt)",
+      "Bash(php -l database/seeders/FiveASideTournamentSeeder.php)",
+      "Bash(php -l bootstrap/app.php)",
+      "Bash(awk '{print $5,$9}')"
+    ]
+  }
+}

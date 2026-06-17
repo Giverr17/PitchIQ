@@ -1,0 +1,10 @@
+add add_circle ads_click arrow_back arrow_forward arrow_outward autorenew bolt
+calendar_month check_circle chevron_left chevron_right close dashboard delete
+done cancel edit edit_note emoji_events error event expand_less expand_more
+fact_check filter_list grid_view group group_add group_off groups handshake
+help_outline history home info insights leaderboard location_on lock login logout
+mail menu military_tech more_vert notifications notifications_active paid payments
+pending person person_off phone play_circle progress_activity query_stats redeem
+refresh save schedule school scoreboard search settings share shield smart_display
+sort sports_score sports_soccer star storefront style token toll trending_up tune
+videocam visibility visibility_off warning

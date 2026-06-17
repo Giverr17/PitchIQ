@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(php -r \"echo app\\(\\)->version\\(\\);\")",
+      "Bash(powershell -Command \"Get-Content 'c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\storage\\\\logs\\\\laravel.log' -Tail 60\")",
+      "Bash(powershell -Command \"Get-Content 'c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\storage\\\\logs\\\\laravel.log' -Tail 150 | Select-String -Pattern 'ERROR|CRITICAL|Exception|message' -Context 0,0 | Select-Object -First 30\")",
+      "Bash(powershell -Command \"Get-Item 'c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\storage\\\\framework\\\\views\\\\livewire\\\\classes\\\\f1d0eeab.php'\")",
+      "Bash(xargs cat)",
+      "Bash(php -l resources/views/livewire/leaderboard.blade.php)",
+      "Bash(php -l resources/views/livewire/admin/payouts/index.blade.php)",
+      "Bash(php -l \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\database\\\\migrations\\\\2026_06_08_231000_add_active_matchday_to_tournaments.php\")",
+      "Bash(php -l \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\app\\\\Models\\\\Tournament.php\")",
+      "Bash(php -l \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\resources\\\\views\\\\livewire\\\\admin\\\\tournaments\\\\index.blade.php\")",
+      "Bash(php -l \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\resources\\\\views\\\\livewire\\\\squad\\\\builder.blade.php\")",
+      "Bash(php -l database/migrations/2026_06_09_000001_refactor_fantasy_teams_to_fixture_model.php)",
+      "Bash(php -l database/migrations/2026_06_09_000002_add_fixture_id_to_fantasy_picks.php)",
+      "Bash(php -l app/Models/FantasyTeam.php)",
+      "Bash(php -l app/Models/FantasyPick.php)",
+      "Bash(php -l app/Models/Fixture.php)",
+      "Bash(Remove-Item \"c:\\\\xampp\\\\htdocs\\\\PitchIQ\\\\public\\\\hot\" -Force)",
+      "Bash(Write-Host \"Deleted\")",
+      "Bash(php -l \"c:/xampp/htdocs/PitchIQ/database/seeders/TestPlaythroughSeeder.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/PitchIQ/bootstrap/app.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/PitchIQ/resources/views/livewire/admin/payouts/index.blade.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/PitchIQ/resources/views/livewire/squad/builder.blade.php\")"
+    ]
+  }
+}
