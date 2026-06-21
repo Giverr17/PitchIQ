@@ -40,10 +40,9 @@ class AiService
         // wrapped, so we sniff the message as well as the exception type.
         $msg = strtolower($e->getMessage());
         $networkSignals = [
-            'curl error 6',
-            'curl error 7',
-            'curl error 28',
-            'curl error 35',
+            'curl error',            // any transport-level cURL failure (incl. 56 = SSL eof)
+            'unexpected eof',
+            'ssl',                   // TLS handshake / read errors
             'could not resolve host',
             'failed to connect',
             'connection refused',
@@ -51,7 +50,6 @@ class AiService
             'timed out',
             'name or service not known',
             'network is unreachable',
-            'ssl connect error',
             'could not connect',
         ];
         if ($e instanceof ConnectionException || Str::contains($msg, $networkSignals)) {
@@ -60,6 +58,78 @@ class AiService
 
         // Anything else: genuinely unexpected.
         return 'The AI request failed unexpectedly. Please try again.';
+    }
+
+    /**
+     * Send a prompt to Gemini and return the raw text — with a bounded per-attempt
+     * timeout and automatic retries on TRANSIENT failures (provider overloaded,
+     * 5xx, dropped/SSL connection). Those are by far the most common failures on
+     * the free tier, so a couple of quiet retries turn most of them into a real
+     * answer instead of a user-facing "AI is overloaded" error. Non-transient
+     * errors (rate limit, bad request) throw immediately for classifyError().
+     */
+   private function runPrompt(string $prompt): string
+{
+    $models = array_merge(
+        [config('services.ai.model', 'gemini-2.5-flash')],
+        config('services.ai.fallbacks', [])
+    );
+
+    $lastError = null;
+
+    foreach ($models as $model) {
+        $maxAttempts = 3;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $response = Prism::text()
+                    ->using(Provider::Gemini, $model)
+                    ->withPrompt($prompt)
+                    ->withClientOptions(['timeout' => 8, 'connect_timeout' => 5])
+                    ->asText();
+
+                return trim($response->text);
+            } catch (\Throwable $e) {
+                $lastError = $e;
+
+                $isRateLimit = $e instanceof PrismRateLimitedException
+                    || Str::contains(strtolower($e->getMessage()), ['rate', 'quota', 'exhausted']);
+
+                // If THIS model is rate-limited, stop retrying it and move to the next model
+                if ($isRateLimit) {
+                    break;   // break the attempt loop → try next model
+                }
+
+                // Other transient errors: retry the same model
+                if ($attempt < $maxAttempts && $this->isTransient($e)) {
+                    usleep(500000 * $attempt);
+                    continue;
+                }
+
+                // Non-transient, non-rate-limit: give up entirely
+                throw $e;
+            }
+        }
+        // fell out of the attempt loop due to rate limit → loop continues to next model
+    }
+
+    throw $lastError;
+}
+
+    /** Failures worth retrying — provider busy, server blip, or a dropped connection. */
+    private function isTransient(\Throwable $e): bool
+    {
+        if (
+            $e instanceof PrismProviderOverloadedException
+            || $e instanceof PrismServerException
+            || $e instanceof PrismRateLimitedException   // ← add this
+            || $e instanceof ConnectionException
+        ) {
+            return true;
+        }
+
+        $msg = strtolower($e->getMessage());
+        return Str::contains($msg, ['overloaded', 'curl error', 'unexpected eof', 'ssl', 'timed out', 'rate', 'quota', 'resource has been exhausted']);
     }
 
     /**
@@ -99,15 +169,8 @@ class AiService
         PROMPT;
 
         try {
-            $model = config('services.ai.model', 'gemini-3.5-flash');
-
-            $response = Prism::text()
-                ->using(Provider::Gemini, $model)
-                ->withPrompt($prompt)
-                ->asText();
-
             // Strip any markdown fences the model might add, then parse JSON
-            $raw = trim($response->text);
+            $raw = $this->runPrompt($prompt);
             $raw = preg_replace('/^```(json)?|```$/m', '', $raw);
             $data = json_decode(trim($raw), true);
 
@@ -165,14 +228,7 @@ class AiService
     PROMPT;
 
         try {
-            $model = config('services.ai.model', 'gemini-3.5-flash');
-
-            $response = \Prism\Prism\Facades\Prism::text()
-                ->using(\Prism\Prism\Enums\Provider::Gemini, $model)
-                ->withPrompt($prompt)
-                ->asText();
-
-            $raw = trim($response->text);
+            $raw = $this->runPrompt($prompt);
             $raw = preg_replace('/^```(json)?|```$/m', '', $raw);
             $data = json_decode(trim($raw), true);
 
@@ -224,7 +280,7 @@ class AiService
 
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('AI structureResult failed', ['error' => $e->getMessage()]);
-            return ['success' => false, 'home_score' => null, 'away_score' => null, 'events' => [], 'warnings' => [], 'lineup' => [], 'top_performers' => [],'status' => 'completed', 'message' => $this->classifyError($e)];
+            return ['success' => false, 'home_score' => null, 'away_score' => null, 'events' => [], 'warnings' => [], 'lineup' => [], 'top_performers' => [], 'status' => 'completed', 'message' => $this->classifyError($e)];
         }
     }
     /**
@@ -266,14 +322,7 @@ class AiService
     PROMPT;
 
         try {
-            $model = config('services.ai.model', 'gemini-3.5-flash');
-
-            $response = \Prism\Prism\Facades\Prism::text()
-                ->using(\Prism\Prism\Enums\Provider::Gemini, $model)
-                ->withPrompt($prompt)
-                ->asText();
-
-            $raw = trim($response->text);
+            $raw = $this->runPrompt($prompt);
             $raw = preg_replace('/^```(json)?|```$/m', '', $raw);
             $data = json_decode(trim($raw), true);
 
@@ -350,14 +399,7 @@ class AiService
     PROMPT;
 
         try {
-            $model = config('services.ai.model', 'gemini-3.5-flash');
-
-            $response = \Prism\Prism\Facades\Prism::text()
-                ->using(\Prism\Prism\Enums\Provider::Gemini, $model)
-                ->withPrompt($prompt)
-                ->asText();
-
-            $raw = trim($response->text);
+            $raw = $this->runPrompt($prompt);
             $raw = preg_replace('/^```(json)?|```$/m', '', $raw);
             $data = json_decode(trim($raw), true);
 
@@ -423,14 +465,7 @@ class AiService
     PROMPT;
 
         try {
-            $model = config('services.ai.model', 'gemini-3.5-flash');
-
-            $response = \Prism\Prism\Facades\Prism::text()
-                ->using(\Prism\Prism\Enums\Provider::Gemini, $model)
-                ->withPrompt($prompt)
-                ->asText();
-
-            $raw = trim($response->text);
+            $raw = $this->runPrompt($prompt);
             $raw = preg_replace('/^```(json)?|```$/m', '', $raw);
             $data = json_decode(trim($raw), true);
 
@@ -499,14 +534,7 @@ class AiService
     PROMPT;
 
         try {
-            $model = config('services.ai.model', 'gemini-3.5-flash');
-
-            $response = \Prism\Prism\Facades\Prism::text()
-                ->using(\Prism\Prism\Enums\Provider::Gemini, $model)
-                ->withPrompt($prompt)
-                ->asText();
-
-            $raw = trim($response->text);
+            $raw = $this->runPrompt($prompt);
             $raw = preg_replace('/^```(json)?|```$/m', '', $raw);
             $data = json_decode(trim($raw), true);
 

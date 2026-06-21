@@ -81,8 +81,49 @@ function initSquadSortable() {
     });
 }
 
+// ─── Friendly error toast (replaces Livewire's full-screen error modal) ───────
+// Shown when a Livewire request fails (timeout, 500, network drop) so users see a
+// short message instead of a raw "Maximum execution time exceeded" page popup.
+function showAppError(message) {
+    let el = document.getElementById('app-error-toast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'app-error-toast';
+        el.style.cssText =
+            'position:fixed;z-index:99999;left:16px;right:16px;bottom:16px;margin:0 auto;' +
+            'max-width:420px;padding:14px 18px;border-radius:14px;' +
+            'background:#1a0d0d;border:1px solid rgba(239,68,68,0.45);color:#fca5a5;' +
+            'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:600;' +
+            'line-height:1.45;box-shadow:0 12px 40px rgba(0,0,0,.55);display:none;';
+        document.body.appendChild(el);
+    }
+    el.textContent = message;
+    el.style.display = 'block';
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+window.showAppError = showAppError;
+
 document.addEventListener('livewire:initialized', () => {
     initSquadSortable();
+
+    // Intercept failed Livewire requests: suppress the default error modal and
+    // surface a clear, friendly message instead.
+    Livewire.hook('request', ({ fail }) => {
+        fail(({ status, preventDefault }) => {
+            preventDefault(); // stop Livewire from rendering its error-page modal
+
+            let msg;
+            if (status === 0)        msg = 'Network problem — check your connection and try again.';
+            else if (status === 419) msg = 'Your session expired. Please refresh the page.';
+            else if (status === 429) msg = 'You’re going a bit fast — wait a moment and try again.';
+            else if (status >= 500)  msg = 'Something went wrong on our end. Please try again.';
+            else                     msg = 'That action couldn’t be completed. Please try again.';
+
+            showAppError(msg);
+        });
+    });
+
     Livewire.hook('commit', ({ component, commit, respond, succeed, fail }) => {
         succeed(({ snapshot, effect }) => {
             const listEl = document.getElementById('player-list-sortable');

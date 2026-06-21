@@ -26,6 +26,6 @@ class ReferralSuccessMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(markdown: 'emails.referral-success');
+        return new Content(view: 'emails.referral-success');
     }
 }

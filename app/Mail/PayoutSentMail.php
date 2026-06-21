@@ -29,6 +29,6 @@ class PayoutSentMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(markdown: 'emails.payout-sent');
+        return new Content(view: 'emails.payout-sent');
     }
 }

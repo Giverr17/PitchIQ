@@ -14,6 +14,8 @@ use App\Enums\TokenTransactionType;
 use App\Enums\FixtureStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
+
 
 new #[Layout('layouts.app')] class extends Component {
 
@@ -353,6 +355,13 @@ new #[Layout('layouts.app')] class extends Component {
             return;
         }
 
+        $key = 'ai-suggest:' . Auth::id();
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $this->flash('Easy there — wait a few seconds before asking the AI again.', 'error');
+            return;
+        }
+        RateLimiter::hit($key, 60);
+
         // Build the player payload from the current pool
         $payload = collect($this->availablePlayers)->map(fn($p) => [
             'id' => $p['id'],
@@ -589,8 +598,8 @@ new #[Layout('layouts.app')] class extends Component {
             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0" x-init="setTimeout(() => { show = false; $wire.dismissToast() }, 4000)"
             class="fixed z-[60] inset-x-4 bottom-4 sm:inset-x-auto sm:bottom-auto sm:top-20 sm:right-4 sm:max-w-sm
-                                   p-4 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center justify-between gap-4
-                                   {{ $toastType === 'success' ? 'bg-[#00E676]/15 border-[#00E676]/40 text-[#00E676]' : 'bg-red-500/15 border-red-500/40 text-red-400' }}">
+                                       p-4 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center justify-between gap-4
+                                       {{ $toastType === 'success' ? 'bg-[#00E676]/15 border-[#00E676]/40 text-[#00E676]' : 'bg-red-500/15 border-red-500/40 text-red-400' }}">
             <div class="flex items-center gap-2.5">
                 <span
                     class="material-symbols-outlined text-[18px]">{{ $toastType === 'success' ? 'check_circle' : 'warning' }}</span>
@@ -668,7 +677,7 @@ new #[Layout('layouts.app')] class extends Component {
         @forelse($fixtureList as $fix)
             <div wire:key="fix-select-{{ $fix['id'] }}"
                 class="rounded-2xl border transition-all duration-200
-                                                                                                                                                                 {{ $fix['has_squad'] ? 'border-[#00E676]/30' : 'border-outline-variant/15 hover:border-[#00E676]/30' }}"
+                                                                                                                                                                         {{ $fix['has_squad'] ? 'border-[#00E676]/30' : 'border-outline-variant/15 hover:border-[#00E676]/30' }}"
                 style="background: rgba(13,17,15,0.8);">
                 <div class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div class="flex items-center gap-4">
@@ -793,7 +802,7 @@ new #[Layout('layouts.app')] class extends Component {
                 @foreach(array_keys($this->formations()) as $f)
                     <button wire:click="changeFormation('{{ $f }}')"
                         class="px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all cursor-pointer
-                                                                                                                                                                           {{ $formation === $f ? 'text-black border-transparent' : 'text-on-surface-variant border-outline-variant/20 hover:border-[#00E676]/40' }}"
+                                                                                                                                                                                   {{ $formation === $f ? 'text-black border-transparent' : 'text-on-surface-variant border-outline-variant/20 hover:border-[#00E676]/40' }}"
                         style="{{ $formation === $f ? 'background: linear-gradient(135deg, #00E676 0%, #00b359 100%);' : '' }}">
                         {{ $f }}
                     </button>
@@ -883,7 +892,7 @@ new #[Layout('layouts.app')] class extends Component {
                     @foreach(['all' => 'All', 'gk' => 'GK', 'def' => 'DEF', 'mid' => 'MID', 'fwd' => 'FWD'] as $val => $label)
                         <button wire:click="$set('positionFilter', '{{ $val }}')"
                             class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all
-                                                                                                                                                                               {{ $positionFilter === $val ? 'text-black border-transparent' : 'text-on-surface-variant/60 border-outline-variant/20' }}"
+                                                                                                                                                                                       {{ $positionFilter === $val ? 'text-black border-transparent' : 'text-on-surface-variant/60 border-outline-variant/20' }}"
                             style="{{ $positionFilter === $val ? 'background:#00E676;' : '' }}">
                             {{ $label }}
                         </button>
@@ -931,7 +940,7 @@ new #[Layout('layouts.app')] class extends Component {
                                 <div wire:key="player-{{ $player['id'] }}" data-player-id="{{ $player['id'] }}"
                                     data-position="{{ $player['position'] }}"
                                     class="flex items-center justify-between p-3 rounded-xl border transition-all select-none md:cursor-grab md:active:cursor-grabbing
-                                                                                                                                                                                                                                                                                                                            {{ $isPicked ? 'border-[#00E676]/40 bg-[#00E676]/5' : 'border-outline-variant/15 bg-white/[0.02]' }}">
+                                                                                                                                                                                                                                                                                                                                            {{ $isPicked ? 'border-[#00E676]/40 bg-[#00E676]/5' : 'border-outline-variant/15 bg-white/[0.02]' }}">
                                     <div class="flex items-center gap-2.5 min-w-0">
                                         <span class="font-mono text-[9px] font-black uppercase px-1.5 py-0.5 rounded flex-shrink-0"
                                             style="background:{{ $player['team_colour'] }}22; color:{{ $player['team_colour'] }};">{{ $player['position'] }}</span>
@@ -976,7 +985,7 @@ new #[Layout('layouts.app')] class extends Component {
                                 <div wire:key="player-{{ $player['id'] }}" data-player-id="{{ $player['id'] }}"
                                     data-position="{{ $player['position'] }}"
                                     class="flex items-center justify-between p-3 rounded-xl border transition-all select-none md:cursor-grab md:active:cursor-grabbing
-                                                                                                                                                                                                                                                                                                                            {{ $isPicked ? 'border-[#00E676]/40 bg-[#00E676]/5' : 'border-outline-variant/15 bg-white/[0.02]' }}">
+                                                                                                                                                                                                                                                                                                                                            {{ $isPicked ? 'border-[#00E676]/40 bg-[#00E676]/5' : 'border-outline-variant/15 bg-white/[0.02]' }}">
                                     <div class="flex items-center gap-2.5 min-w-0">
                                         <span class="font-mono text-[9px] font-black uppercase px-1.5 py-0.5 rounded flex-shrink-0"
                                             style="background:{{ $player['team_colour'] }}22; color:{{ $player['team_colour'] }};">{{ $player['position'] }}</span>
@@ -1033,12 +1042,12 @@ new #[Layout('layouts.app')] class extends Component {
                                 <div class="flex items-center gap-2 flex-shrink-0">
                                     <button wire:click="setCaptain({{ $player['id'] }})"
                                         class="w-7 h-7 rounded-lg font-black text-xs border transition-all cursor-pointer
-                                                                                                                                                                                                                                                               {{ $captainId === $player['id'] ? 'text-black border-transparent' : 'text-on-surface-variant/50 border-outline-variant/20 hover:border-[#00E676]/40' }}"
+                                                                                                                                                                                                                                                                           {{ $captainId === $player['id'] ? 'text-black border-transparent' : 'text-on-surface-variant/50 border-outline-variant/20 hover:border-[#00E676]/40' }}"
                                         style="{{ $captainId === $player['id'] ? 'background:#00E676;' : '' }}"
                                         title="Captain">C</button>
                                     <button wire:click="setViceCaptain({{ $player['id'] }})"
                                         class="w-7 h-7 rounded-lg font-black text-xs border transition-all cursor-pointer
-                                                                                                                                                                                                                                                               {{ $viceCaptainId === $player['id'] ? 'bg-white/15 text-white border-white/30' : 'text-on-surface-variant/50 border-outline-variant/20 hover:border-white/30' }}"
+                                                                                                                                                                                                                                                                           {{ $viceCaptainId === $player['id'] ? 'bg-white/15 text-white border-white/30' : 'text-on-surface-variant/50 border-outline-variant/20 hover:border-white/30' }}"
                                         title="Vice-captain">V</button>
                                 </div>
                             </div>
