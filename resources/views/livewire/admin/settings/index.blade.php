@@ -7,18 +7,22 @@ use Livewire\Volt\Component;
 
 new #[Layout('layouts.admin')] class extends Component
 {
-    public string $fantasyBudget = '600';
-    public string $toast         = '';
-    public string $toastType     = 'success';
+    public string $fantasyBudget  = '600';   // 11-a-side
+    public string $fantasyBudget5 = '320';   // 5-a-side
+    public string $toast          = '';
+    public string $toastType      = 'success';
 
     // Stats shown to help admin set a sensible budget
     public int $avgPlayerPrice = 0;
-    public int $minSquadCost   = 0;
-    public int $maxSquadCost   = 0;
+    public int $minSquadCost   = 0;   // cheapest 11
+    public int $maxSquadCost   = 0;   // priciest 11
+    public int $minSquadCost5  = 0;   // cheapest 5
+    public int $maxSquadCost5  = 0;   // priciest 5
 
     public function mount(): void
     {
-        $this->fantasyBudget = AppSetting::get(AppSetting::FANTASY_BUDGET, '600');
+        $this->fantasyBudget  = AppSetting::get(AppSetting::FANTASY_BUDGET, '600');
+        $this->fantasyBudget5 = AppSetting::get(AppSetting::FANTASY_BUDGET_5, '320');
         $this->computePlayerStats();
     }
 
@@ -29,21 +33,30 @@ new #[Layout('layouts.admin')] class extends Component
 
         $this->avgPlayerPrice = (int) round($prices->average());
 
-        // Minimum squad cost: cheapest 11 players
+        // 11-a-side: cheapest / priciest 11 players
         $this->minSquadCost = (int) $prices->sort()->take(11)->sum();
-
-        // Maximum squad cost: most expensive 11 players
         $this->maxSquadCost = (int) $prices->sortDesc()->take(11)->sum();
+
+        // 5-a-side: cheapest / priciest 5 players
+        $this->minSquadCost5 = (int) $prices->sort()->take(5)->sum();
+        $this->maxSquadCost5 = (int) $prices->sortDesc()->take(5)->sum();
     }
 
     public function save(): void
     {
         $this->validate([
-            'fantasyBudget' => 'required|integer|min:1|max:99999',
+            'fantasyBudget'  => 'required|integer|min:1|max:99999',
+            'fantasyBudget5' => 'required|integer|min:1|max:99999',
         ]);
 
-        AppSetting::where('key', AppSetting::FANTASY_BUDGET)
-            ->update(['value' => (string) (int) $this->fantasyBudget]);
+        AppSetting::updateOrCreate(
+            ['key' => AppSetting::FANTASY_BUDGET],
+            ['value' => (string) (int) $this->fantasyBudget],
+        );
+        AppSetting::updateOrCreate(
+            ['key' => AppSetting::FANTASY_BUDGET_5],
+            ['value' => (string) (int) $this->fantasyBudget5],
+        );
 
         $this->toast     = 'Settings saved.';
         $this->toastType = 'success';
@@ -107,50 +120,100 @@ new #[Layout('layouts.admin')] class extends Component
 
         <div class="p-6 space-y-6">
 
-            {{-- Budget input --}}
-            <div>
-                <label class="block font-mono text-xs font-bold text-on-surface uppercase tracking-wider mb-1">
-                    Squad Budget Cap
-                </label>
-                <p class="font-mono text-[11px] text-on-surface-variant/50 mb-3">
-                    Maximum total player price a user can spend when building a squad for a fixture.
-                    Lower values force harder strategic choices.
-                </p>
-                <div class="flex items-center gap-3">
-                    <input
-                        type="number"
-                        min="1"
-                        max="99999"
-                        wire:model="fantasyBudget"
-                        class="w-32 text-center px-4 py-2.5 rounded-xl border font-mono text-lg font-bold
-                               bg-surface-container border-outline-variant/30 text-on-surface
-                               focus:outline-none focus:border-primary-container/60
-                               transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none">
-                    <span class="font-mono text-xs text-on-surface-variant/50">coins</span>
+            {{-- Budget inputs: 11-a-side + 5-a-side --}}
+            <p class="font-mono text-[11px] text-on-surface-variant/50 -mt-1">
+                Maximum total player price a user can spend when building a squad for a fixture.
+                Each squad size has its own cap. Lower values force harder strategic choices.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {{-- 11-a-side --}}
+                <div>
+                    <label class="block font-mono text-xs font-bold text-on-surface uppercase tracking-wider mb-1">
+                        11-a-side Budget
+                    </label>
+                    <p class="font-mono text-[11px] text-on-surface-variant/50 mb-3">Cap for full 11-player squads.</p>
+                    <div class="flex items-center gap-3">
+                        <input
+                            type="number"
+                            min="1"
+                            max="99999"
+                            wire:model="fantasyBudget"
+                            class="w-32 text-center px-4 py-2.5 rounded-xl border font-mono text-lg font-bold
+                                   bg-surface-container border-outline-variant/30 text-on-surface
+                                   focus:outline-none focus:border-primary-container/60
+                                   transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none">
+                        <span class="font-mono text-xs text-on-surface-variant/50">coins</span>
+                    </div>
+                    @error('fantasyBudget') <p class="text-red-400 text-xs font-mono mt-2">{{ $message }}</p> @enderror
                 </div>
-                @error('fantasyBudget') <p class="text-red-400 text-xs font-mono mt-2">{{ $message }}</p> @enderror
+
+                {{-- 5-a-side --}}
+                <div>
+                    <label class="block font-mono text-xs font-bold text-on-surface uppercase tracking-wider mb-1">
+                        5-a-side Budget
+                    </label>
+                    <p class="font-mono text-[11px] text-on-surface-variant/50 mb-3">Cap for 5-a-side squads.</p>
+                    <div class="flex items-center gap-3">
+                        <input
+                            type="number"
+                            min="1"
+                            max="99999"
+                            wire:model="fantasyBudget5"
+                            class="w-32 text-center px-4 py-2.5 rounded-xl border font-mono text-lg font-bold
+                                   bg-surface-container border-outline-variant/30 text-on-surface
+                                   focus:outline-none focus:border-primary-container/60
+                                   transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none">
+                        <span class="font-mono text-xs text-on-surface-variant/50">coins</span>
+                    </div>
+                    @error('fantasyBudget5') <p class="text-red-400 text-xs font-mono mt-2">{{ $message }}</p> @enderror
+                </div>
             </div>
 
             {{-- Player price reference --}}
             @if($avgPlayerPrice > 0)
-                <div class="rounded-xl bg-surface-container/50 border border-outline-variant/15 p-4 space-y-3">
+                <div class="rounded-xl bg-surface-container/50 border border-outline-variant/15 p-4 space-y-4">
                     <p class="font-mono text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50">Current Player Price Reference</p>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="text-center">
-                            <span class="block font-mono text-lg font-black text-on-surface">{{ $minSquadCost }}</span>
-                            <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Min squad<br>(11 cheapest)</span>
-                        </div>
-                        <div class="text-center">
-                            <span class="block font-mono text-lg font-black text-primary-container">{{ $avgPlayerPrice * 11 }}</span>
-                            <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Avg squad<br>(avg × 11)</span>
-                        </div>
-                        <div class="text-center">
-                            <span class="block font-mono text-lg font-black text-on-surface">{{ $maxSquadCost }}</span>
-                            <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Max squad<br>(11 priciest)</span>
+
+                    {{-- 11-a-side reference --}}
+                    <div>
+                        <p class="font-mono text-[10px] font-bold uppercase tracking-wider text-primary-container/70 mb-2">11-a-side</p>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="text-center">
+                                <span class="block font-mono text-lg font-black text-on-surface">{{ $minSquadCost }}</span>
+                                <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Min<br>(11 cheapest)</span>
+                            </div>
+                            <div class="text-center">
+                                <span class="block font-mono text-lg font-black text-primary-container">{{ $avgPlayerPrice * 11 }}</span>
+                                <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Avg<br>(avg × 11)</span>
+                            </div>
+                            <div class="text-center">
+                                <span class="block font-mono text-lg font-black text-on-surface">{{ $maxSquadCost }}</span>
+                                <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Max<br>(11 priciest)</span>
+                            </div>
                         </div>
                     </div>
-                    <p class="font-mono text-[10px] text-on-surface-variant/40 leading-relaxed">
-                        Set budget between min and avg squad cost for tight strategic games.
+
+                    {{-- 5-a-side reference --}}
+                    <div class="pt-3 border-t border-outline-variant/10">
+                        <p class="font-mono text-[10px] font-bold uppercase tracking-wider text-primary-container/70 mb-2">5-a-side</p>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="text-center">
+                                <span class="block font-mono text-lg font-black text-on-surface">{{ $minSquadCost5 }}</span>
+                                <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Min<br>(5 cheapest)</span>
+                            </div>
+                            <div class="text-center">
+                                <span class="block font-mono text-lg font-black text-primary-container">{{ $avgPlayerPrice * 5 }}</span>
+                                <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Avg<br>(avg × 5)</span>
+                            </div>
+                            <div class="text-center">
+                                <span class="block font-mono text-lg font-black text-on-surface">{{ $maxSquadCost5 }}</span>
+                                <span class="font-mono text-[9px] text-on-surface-variant/50 uppercase tracking-wider">Max<br>(5 priciest)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="font-mono text-[10px] text-on-surface-variant/40 leading-relaxed pt-1">
+                        Set each budget between its min and avg squad cost for tight strategic games.
                         Current avg player price: <strong class="text-on-surface">{{ $avgPlayerPrice }}</strong>
                     </p>
                 </div>

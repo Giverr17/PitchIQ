@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->enum('position', ['GK', 'DEF', 'MID', 'FWD']);
+            $table->string('position');
             $table->unsignedTinyInteger('number')->nullable();
             $table->unsignedSmallInteger('fantasy_price')->default(50); // in fantasy coins
             $table->unsignedSmallInteger('goals')->default(0);

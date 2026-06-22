@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('fixture_id')->constrained()->cascadeOnDelete();
             $table->foreignId('player_id')->constrained()->cascadeOnDelete();
-            $table->enum('event_type', ['goal', 'assist', 'yellow', 'red', 'own_goal', 'penalty_saved', 'sub_on', 'sub_off']);
+            $table->string('event_type'); // validated against App\Enums\PlayerEventType
             $table->unsignedTinyInteger('minute')->nullable();
             $table->boolean('is_substitute')->default(false); // was player a sub when event happened
             $table->timestamps();

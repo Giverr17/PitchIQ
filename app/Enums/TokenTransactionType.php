@@ -21,6 +21,14 @@ enum TokenTransactionType: string
         };
     }
 
+    /** [value => label] map for <select> dropdowns */
+    public static function options(): array
+    {
+        return collect(self::cases())
+            ->mapWithKeys(fn(self $c) => [$c->value => $c->label()])
+            ->all();
+    }
+
     /** True if this transaction adds tokens to the user's balance */
     public function isCredit(): bool
     {

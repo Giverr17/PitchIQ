@@ -1,8 +1,13 @@
 <?php
 
 use App\Enums\FixtureStatus;
+use App\Enums\TournamentStatus;
 use App\Models\Fixture;
+use App\Models\FantasyTeam;
+use App\Models\Team;
 use App\Models\Tournament;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -14,7 +19,37 @@ Route::get('/', function () {
         ->orderBy('date')
         ->limit(6)
         ->get();
-    return view('welcome', compact('welcomeFixtures'));
+
+    // Real platform stats (no fabricated numbers)
+    $stats = [
+        'players'     => User::count(),
+        'faculties'   => Team::whereNotNull('faculty')->distinct()->count('faculty'),
+        'gamesPlayed' => Fixture::where('status', FixtureStatus::Completed)->count(),
+        'tournaments' => Tournament::count(),
+    ];
+
+    // Top fantasy managers by total points (across all tournaments)
+    $topManagers = FantasyTeam::join('users', 'fantasy_teams.user_id', '=', 'users.id')
+        ->groupBy('fantasy_teams.user_id', 'users.name', 'users.faculty')
+        ->select(
+            'users.name as manager',
+            'users.faculty',
+            DB::raw('SUM(fantasy_teams.total_points) as pts'),
+            DB::raw('MAX(fantasy_teams.team_name) as squad'),
+        )
+        ->orderByDesc('pts')
+        ->limit(5)
+        ->get();
+
+    // Real upcoming/active tournaments for the events section
+    $welcomeEvents = Tournament::withCount('teams')
+        ->whereIn('status', [TournamentStatus::Upcoming, TournamentStatus::Active])
+        ->orderByRaw("FIELD(status, 'active', 'upcoming')")
+        ->orderBy('start_date')
+        ->limit(3)
+        ->get();
+
+    return view('welcome', compact('welcomeFixtures', 'stats', 'topManagers', 'welcomeEvents'));
 })->name('home');
 Route::get('/games', function () {
     $liveFixtures = Fixture::with(['homeTeam', 'awayTeam', 'tournament'])

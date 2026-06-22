@@ -30,6 +30,14 @@ enum PlayerEventType: string
         };
     }
 
+    /** [value => label] map for <select> dropdowns */
+    public static function options(): array
+    {
+        return collect(self::cases())
+            ->mapWithKeys(fn(self $c) => [$c->value => $c->label()])
+            ->all();
+    }
+
     public function icon(): string
     {
         return match($this) {

@@ -19,6 +19,14 @@ enum PlayerPosition: string
         };
     }
 
+    /** [value => label] map for <select> dropdowns */
+    public static function options(): array
+    {
+        return collect(self::cases())
+            ->mapWithKeys(fn(self $c) => [$c->value => $c->label()])
+            ->all();
+    }
+
     public function shortLabel(): string
     {
         return $this->value;

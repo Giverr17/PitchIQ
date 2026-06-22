@@ -17,6 +17,14 @@ enum TournamentStatus: string
         };
     }
 
+    /** [value => label] map for <select> dropdowns */
+    public static function options(): array
+    {
+        return collect(self::cases())
+            ->mapWithKeys(fn(self $c) => [$c->value => $c->label()])
+            ->all();
+    }
+
     /** True when tournament-level predictions may still be submitted/edited */
     public function isPredictable(): bool
     {

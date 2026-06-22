@@ -9,7 +9,8 @@ class AppSetting extends Model
     protected $fillable = ['key', 'value', 'label', 'description'];
 
     // ─── Setting keys ──────────────────────────────────────────────────────────
-    const FANTASY_BUDGET = 'fantasy_budget';
+    const FANTASY_BUDGET = 'fantasy_budget';        // 11-a-side squad budget
+    const FANTASY_BUDGET_5 = 'fantasy_budget_5';    // 5-a-side squad budget
 
     // ─── Helper ────────────────────────────────────────────────────────────────
 

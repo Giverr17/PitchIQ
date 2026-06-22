@@ -6,16 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function up(): void 
     {
-        // Add referral fields to users
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('referral_code', 12)->nullable()->unique()->after('is_admin');
-            $table->unsignedBigInteger('referred_by')->nullable()->after('referral_code');
-
-            $table->foreign('referred_by')->references('id')->on('users')->nullOnDelete();
-        });
-
+        // referral_code + referred_by now live in the create_users migration.
         // Track each referral and its reward status
         Schema::create('referrals', function (Blueprint $table) {
             $table->id();
@@ -31,10 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['referred_by']);
-            $table->dropColumn(['referral_code', 'referred_by']);
-        });
         Schema::dropIfExists('referrals');
     }
 };

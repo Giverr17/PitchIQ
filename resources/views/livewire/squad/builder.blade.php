@@ -139,7 +139,7 @@ new #[Layout('layouts.app')] class extends Component {
         $this->maxPerTeam = $this->squadSize === 5 ? 3 : 7;
 
         if ($this->squadSize === 5) {
-            $this->budget = (int) AppSetting::get('fantasy_budget_5', 320);
+            $this->budget = (int) AppSetting::get(AppSetting::FANTASY_BUDGET_5, 320);
             $this->formation = '1-2-1';
         } else {
             $this->budget = (int) AppSetting::get(AppSetting::FANTASY_BUDGET, 1500);

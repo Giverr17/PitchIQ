@@ -110,11 +110,6 @@
                     <span class="font-mono text-xs text-on-surface-variant truncate">{{ Auth::user()->name }}</span>
                 </div>
             @endauth
-            <a href="{{ route('dashboard') }}"
-               class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-outline-variant/20 text-xs font-mono font-bold text-on-surface-variant hover:text-primary-container hover:border-primary-container/40 hover:bg-primary-container/5 transition-all uppercase tracking-wider">
-                <span class="material-symbols-outlined text-[14px]">arrow_back</span>
-                Player Lobby
-            </a>
         </div>
     </aside>
 
@@ -186,16 +181,6 @@
             @endforeach
         </nav>
 
-        {{-- Footer: back to player lobby --}}
-        <div class="p-4 border-t border-outline-variant/15 flex-shrink-0">
-            <a href="{{ route('dashboard') }}" @click="sidebarOpen = false"
-               class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-outline-variant/20
-                      text-xs font-mono font-bold text-on-surface-variant uppercase tracking-wider
-                      hover:text-primary-container hover:border-primary-container/40 hover:bg-primary-container/5 transition-all">
-                <span class="material-symbols-outlined text-[14px]">arrow_back</span>
-                Player Lobby
-            </a>
-        </div>
     </aside>
 
     {{-- ===================== --}}

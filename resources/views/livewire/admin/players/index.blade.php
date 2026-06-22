@@ -6,6 +6,7 @@ use Livewire\Attributes\Computed;
 use App\Models\Player;
 use App\Models\Team;
 use App\Enums\PlayerPosition;
+use Illuminate\Validation\Rule;
 
 new #[Layout('layouts.admin')] class extends Component {
 
@@ -13,6 +14,16 @@ new #[Layout('layouts.admin')] class extends Component {
 
     public string $search = '';
     public string $positionFilter = '';
+    public int|string $teamFilter = '';
+
+    // Bulk selection
+    public array $selected = [];
+    public bool $selectAll = false;
+
+    // Bulk edit
+    public bool $showBulkEdit = false;
+    public int|string $bulkTeamId = '';
+    public string $bulkPosition = '';
 
     // Form fields
     public int|string $team_id = '';
@@ -44,9 +55,86 @@ new #[Layout('layouts.admin')] class extends Component {
         return Player::with('team')
             ->when($this->search, fn($q) => $q->where('name', 'like', "%{$this->search}%"))
             ->when($this->positionFilter, fn($q) => $q->where('position', $this->positionFilter))
+            ->when($this->teamFilter, fn($q) => $q->where('team_id', $this->teamFilter))
             ->latest()
             ->get()
             ->toArray();
+    }
+
+    // ── Bulk selection ─────────────────────────────────────────
+    private function resetSelection(): void
+    {
+        $this->selected = [];
+        $this->selectAll = false;
+    }
+
+    // Reset selection whenever the visible set changes, so bulk actions
+    // never act on rows the admin can't currently see.
+    public function updatedSearch(): void { $this->resetSelection(); }
+    public function updatedPositionFilter(): void { $this->resetSelection(); }
+    public function updatedTeamFilter(): void { $this->resetSelection(); }
+
+    public function updatedSelectAll($value): void
+    {
+        $this->selected = $value
+            ? collect($this->players)->pluck('id')->map(fn($id) => (string) $id)->all()
+            : [];
+    }
+
+    public function bulkDelete(): void
+    {
+        if (empty($this->selected)) {
+            return;
+        }
+        $count = Player::whereIn('id', $this->selected)->delete();
+        $this->resetSelection();
+        unset($this->players);
+        $this->dispatch('notify', message: "{$count} player(s) deleted.");
+    }
+
+    // ── Bulk edit (reassign team / position) ───────────────────
+    public function openBulkEdit(): void
+    {
+        if (empty($this->selected)) {
+            return;
+        }
+        $this->bulkTeamId = '';
+        $this->bulkPosition = '';
+        $this->resetValidation();
+        $this->showBulkEdit = true;
+    }
+
+    public function closeBulkEdit(): void
+    {
+        $this->showBulkEdit = false;
+    }
+
+    public function bulkUpdate(): void
+    {
+        if (empty($this->selected)) {
+            return;
+        }
+
+        $data = [];
+        if ($this->bulkTeamId !== '') {
+            $this->validate(['bulkTeamId' => 'exists:teams,id']);
+            $data['team_id'] = $this->bulkTeamId;
+        }
+        if ($this->bulkPosition !== '') {
+            $this->validate(['bulkPosition' => [Rule::enum(PlayerPosition::class)]]);
+            $data['position'] = $this->bulkPosition;
+        }
+
+        if (empty($data)) {
+            $this->dispatch('notify', message: 'Pick a team or position to apply.');
+            return;
+        }
+
+        $count = Player::whereIn('id', $this->selected)->update($data);
+        $this->showBulkEdit = false;
+        $this->resetSelection();
+        unset($this->players);
+        $this->dispatch('notify', message: "{$count} player(s) updated.");
     }
 
     public function openCreate(): void
@@ -120,7 +208,7 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->validate([
             'team_id' => 'required|exists:teams,id',
             'name' => 'required|string|max:100',
-            'position' => 'required|in:GK,DEF,MID,FWD',
+            'position' => ['required', Rule::enum(PlayerPosition::class)],
             'number' => 'nullable|integer|min:1|max:99',
             'fantasy_price' => 'required|integer|min:1|max:9999',
         ]);
@@ -274,8 +362,19 @@ new #[Layout('layouts.admin')] class extends Component {
             <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search players..."
                 class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-outline-variant/20 text-sm text-on-surface placeholder:text-on-surface-variant/30 focus:outline-none focus:border-[#00E676]/40 transition-all font-mono" />
         </div>
+        <select wire:model.live="teamFilter"
+            class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0d110f] border border-outline-variant/20 text-sm text-on-surface-variant font-mono focus:outline-none focus:border-[#00E676]/40 transition-all cursor-pointer">
+            <option value="">All Teams</option>
+            @foreach($teams as $team)
+                <option value="{{ $team['id'] }}">{{ $team['name'] }}</option>
+            @endforeach
+        </select>
         <div class="flex gap-2 flex-wrap">
-            @foreach(['' => 'All', 'GK' => 'GK', 'DEF' => 'DEF', 'MID' => 'MID', 'FWD' => 'FWD'] as $val => $label)
+            @php
+                $positionFilters = ['' => 'All']
+                    + collect(\App\Enums\PlayerPosition::cases())->mapWithKeys(fn($p) => [$p->value => $p->value])->all();
+            @endphp
+            @foreach($positionFilters as $val => $label)
                     <button wire:click="$set('positionFilter', '{{ $val }}')"
                         class="px-3 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider border transition-all cursor-pointer"
                         style="{{ $positionFilter === $val
@@ -287,12 +386,39 @@ new #[Layout('layouts.admin')] class extends Component {
         </div>
     </div>
 
+    {{-- Bulk actions bar --}}
+    @if(count($selected) > 0)
+        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-[#00E676]/30 px-4 py-3"
+            style="background:rgba(0,230,118,0.04);">
+            <span class="font-mono text-xs font-bold" style="color:#00E676;">{{ count($selected) }} selected</span>
+            <div class="flex-1"></div>
+            <button wire:click="openBulkEdit"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-on-surface border border-outline-variant/20 bg-white/5 hover:text-[#00E676] hover:border-[#00E676]/40 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[15px]">edit</span> Edit selected
+            </button>
+            <button wire:click="bulkDelete"
+                wire:confirm="Delete {{ count($selected) }} selected player(s)? This cannot be undone."
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-red-400 border border-red-400/30 bg-red-400/5 hover:bg-red-400/15 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[15px]">delete</span> Delete selected
+            </button>
+            <button wire:click="$set('selected', []); $set('selectAll', false)"
+                class="px-3 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-on-surface-variant/60 hover:text-white transition-all cursor-pointer">
+                Clear
+            </button>
+        </div>
+    @endif
+
     {{-- Table --}}
     <div class="rounded-2xl overflow-hidden border border-outline-variant/15" style="background: rgba(13,17,15,0.8);">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b border-outline-variant/15" style="background: rgba(255,255,255,0.02);">
+                        <th class="py-3.5 pl-4 pr-1 w-10">
+                            <input type="checkbox" wire:model.live="selectAll"
+                                class="w-4 h-4 rounded cursor-pointer align-middle" style="accent-color:#00E676;"
+                                title="Select all" />
+                        </th>
                         <th
                             class="py-3.5 px-3 sm:px-5 text-xs font-semibold text-on-surface-variant uppercase tracking-wider font-mono">
                             Name</th>
@@ -321,6 +447,11 @@ new #[Layout('layouts.admin')] class extends Component {
                         @php $pos = is_array($player['position']) ? $player['position']['value'] : $player['position']; @endphp
                         <tr
                             class="border-b border-outline-variant/10 text-sm hover:bg-white/[0.02] transition-all duration-150">
+
+                            <td class="py-4 pl-4 pr-1">
+                                <input type="checkbox" wire:model.live="selected" value="{{ $player['id'] }}"
+                                    class="w-4 h-4 rounded cursor-pointer align-middle" style="accent-color:#00E676;" />
+                            </td>
 
                             <td class="py-4 px-3 sm:px-5 font-bold text-on-surface max-w-[130px] sm:max-w-none"><span
                                     class="block truncate">{{ $player['name'] }}</span></td>
@@ -377,11 +508,10 @@ new #[Layout('layouts.admin')] class extends Component {
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-16 text-center">
+                            <td colspan="8" class="py-16 text-center">
                                 <span
                                     class="material-symbols-outlined text-4xl text-on-surface-variant/20 block mb-3">sports_soccer</span>
-                                <p class="text-on-surface-variant/40 text-sm font-mono">No players yet. Add the first
-                                    player.</p>
+                                <p class="text-on-surface-variant/40 text-sm font-mono">No players found.</p>
                             </td>
                         </tr>
                     @endforelse
@@ -445,10 +575,9 @@ new #[Layout('layouts.admin')] class extends Component {
                             <select wire:model="position"
                                 class="w-full px-4 py-2.5 rounded-xl text-sm text-white border border-outline-variant/20 bg-[#0d110f] focus:outline-none focus:border-[#00E676]/50 transition-all appearance-none cursor-pointer">
                                 <option value="">— Select —</option>
-                                <option value="GK">GK — Goalkeeper</option>
-                                <option value="DEF">DEF — Defender</option>
-                                <option value="MID">MID — Midfielder</option>
-                                <option value="FWD">FWD — Forward</option>
+                                @foreach(\App\Enums\PlayerPosition::cases() as $case)
+                                    <option value="{{ $case->value }}">{{ $case->value }} — {{ $case->label() }}</option>
+                                @endforeach
                             </select>
                             @error('position') <p class="text-red-400 text-xs font-mono mt-1">{{ $message }}</p> @enderror
                         </div>
@@ -484,6 +613,73 @@ new #[Layout('layouts.admin')] class extends Component {
                         style="background: linear-gradient(135deg, #00E676 0%, #00b359 100%);">
                         <span wire:loading.remove wire:target="save">{{ $editingId ? 'Update' : 'Create' }}</span>
                         <span wire:loading wire:target="save">Saving...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- BULK EDIT MODAL --}}
+    @if($showBulkEdit)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+
+            <div class="w-full max-w-md rounded-2xl border border-outline-variant/20 shadow-2xl" style="background: #0d110f;">
+
+                {{-- Header --}}
+                <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/15">
+                    <h3 class="font-display font-black text-sm uppercase tracking-wider text-on-surface">
+                        Edit {{ count($selected) }} Player(s)
+                    </h3>
+                    <button wire:click="closeBulkEdit" class="text-on-surface-variant hover:text-white transition-colors">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+
+                {{-- Body --}}
+                <div class="px-6 py-5 space-y-4">
+                    <p class="font-mono text-[10px] text-on-surface-variant/50">
+                        Leave a field on “Keep current” to leave it unchanged for the selected players.
+                    </p>
+
+                    {{-- Team --}}
+                    <div>
+                        <label class="block text-xs font-mono text-on-surface-variant uppercase tracking-wider mb-1.5">Team</label>
+                        <select wire:model="bulkTeamId"
+                            class="w-full px-4 py-2.5 rounded-xl text-sm text-white border border-outline-variant/20 bg-[#0d110f] focus:outline-none focus:border-[#00E676]/50 transition-all appearance-none cursor-pointer">
+                            <option value="">— Keep current —</option>
+                            @foreach($teams as $team)
+                                <option value="{{ $team['id'] }}">{{ $team['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('bulkTeamId') <p class="text-red-400 text-xs font-mono mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Position --}}
+                    <div>
+                        <label class="block text-xs font-mono text-on-surface-variant uppercase tracking-wider mb-1.5">Position</label>
+                        <select wire:model="bulkPosition"
+                            class="w-full px-4 py-2.5 rounded-xl text-sm text-white border border-outline-variant/20 bg-[#0d110f] focus:outline-none focus:border-[#00E676]/50 transition-all appearance-none cursor-pointer">
+                            <option value="">— Keep current —</option>
+                            @foreach(\App\Enums\PlayerPosition::cases() as $case)
+                                <option value="{{ $case->value }}">{{ $case->value }} — {{ $case->label() }}</option>
+                            @endforeach
+                        </select>
+                        @error('bulkPosition') <p class="text-red-400 text-xs font-mono mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div class="px-6 py-4 border-t border-outline-variant/15 flex items-center justify-end gap-3">
+                    <button wire:click="closeBulkEdit"
+                        class="px-5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-on-surface-variant border border-outline-variant/20 hover:bg-white/5 transition-all cursor-pointer">
+                        Cancel
+                    </button>
+                    <button wire:click="bulkUpdate" wire:loading.attr="disabled" wire:target="bulkUpdate"
+                        class="px-5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-black transition-all cursor-pointer disabled:opacity-50"
+                        style="background: linear-gradient(135deg, #00E676 0%, #00b359 100%);">
+                        <span wire:loading.remove wire:target="bulkUpdate">Apply</span>
+                        <span wire:loading wire:target="bulkUpdate">Applying...</span>
                     </button>
                 </div>
             </div>

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('tournament_id')->constrained()->cascadeOnDelete();
-            $table->enum('type', ['top_scorer', 'most_assists']);
+            $table->string('type'); // validated against App\Enums\TournamentPredictionType
             $table->foreignId('predicted_player_id')
                   ->nullable()
                   ->constrained('players')

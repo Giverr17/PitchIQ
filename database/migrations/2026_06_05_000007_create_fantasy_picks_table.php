@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('fantasy_picks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('fantasy_team_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('fixture_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('player_id')->constrained()->cascadeOnDelete();
             $table->unsignedTinyInteger('matchday');
             $table->boolean('is_captain')->default(false);

@@ -7,6 +7,7 @@ use App\Models\Fixture;
 use App\Models\Team;
 use App\Models\Tournament;
 use App\Enums\FixtureStatus;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 new #[Layout('layouts.admin')] class extends Component {
@@ -196,7 +197,7 @@ new #[Layout('layouts.admin')] class extends Component {
             'away_team_id' => 'required|exists:teams,id',
             'matchday' => 'required|integer|min:1|max:50',
             'date' => 'nullable|date',
-            'status' => 'required|in:scheduled,live,completed,postponed',
+            'status' => ['required', Rule::enum(FixtureStatus::class)],
             'home_score' => 'nullable|integer|min:0',
             'away_score' => 'nullable|integer|min:0',
         ]);

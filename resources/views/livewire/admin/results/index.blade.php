@@ -7,6 +7,7 @@ use App\Models\PlayerEvent;
 use App\Models\Player;
 use App\Enums\FixtureStatus;
 use App\Enums\PlayerEventType;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Models\FixturePlayerStat;
 
@@ -259,7 +260,7 @@ new #[Layout('layouts.admin')] class extends Component {
     {
         $this->validate([
             'event_player_id' => 'required|exists:players,id',
-            'event_type' => 'required|in:goal,assist,yellow,red,own_goal,penalty_saved,penalty_miss,sub_on,sub_off',
+            'event_type' => ['required', Rule::enum(PlayerEventType::class)],
             'event_minute' => 'nullable|integer|min:1|max:120',
         ]);
 
@@ -291,7 +292,7 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->validate([
             'home_score' => 'required|integer|min:0|max:99',
             'away_score' => 'required|integer|min:0|max:99',
-            'fixture_status' => 'required|in:scheduled,live,completed,postponed',
+            'fixture_status' => ['required', Rule::enum(FixtureStatus::class)],
         ]);
 
         DB::transaction(function () {
@@ -687,10 +688,9 @@ new #[Layout('layouts.admin')] class extends Component {
                                 style="padding:11px 16px; color:#fff; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.2);"
                                 onfocus="this.style.borderColor='#00E676';"
                                 onblur="this.style.borderColor='rgba(255,255,255,0.2)';">
-                                <option value="scheduled" style="background:#0d110f;">Scheduled</option>
-                                <option value="live" style="background:#0d110f;">Live</option>
-                                <option value="completed" style="background:#0d110f;">Completed</option>
-                                <option value="postponed" style="background:#0d110f;">Postponed</option>
+                                @foreach(\App\Enums\FixtureStatus::cases() as $case)
+                                    <option value="{{ $case->value }}" style="background:#0d110f;">{{ $case->label() }}</option>
+                                @endforeach
                             </select>
                         </div>
 

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('token_transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->enum('type', ['earned', 'spent', 'bonus', 'withdrawal', 'purchase']);
+            $table->string('type'); // validated against App\Enums\TokenTransactionType
             $table->integer('amount'); // can be negative for deductions
             $table->string('description');
             $table->timestamps();

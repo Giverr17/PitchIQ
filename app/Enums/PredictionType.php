@@ -22,6 +22,14 @@ enum PredictionType: string
         };
     }
 
+    /** [value => label] map for <select> dropdowns */
+    public static function options(): array
+    {
+        return collect(self::cases())
+            ->mapWithKeys(fn(self $c) => [$c->value => $c->label()])
+            ->all();
+    }
+
     /** Material Symbol icon name for UI */
     public function icon(): string
     {

@@ -19,6 +19,14 @@ enum FixtureStatus: string
         };
     }
 
+    /** [value => label] map for <select> dropdowns */
+    public static function options(): array
+    {
+        return collect(self::cases())
+            ->mapWithKeys(fn(self $c) => [$c->value => $c->label()])
+            ->all();
+    }
+
     /** True when users may still submit predictions */
     public function isPredictable(): bool
     {

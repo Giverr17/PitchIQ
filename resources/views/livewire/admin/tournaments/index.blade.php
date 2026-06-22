@@ -3,6 +3,9 @@
 use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
 use App\Models\Tournament;
+use App\Enums\TournamentType;
+use App\Enums\TournamentStatus;
+use Illuminate\Validation\Rule;
 
 new #[Layout('layouts.admin')] class extends Component {
 
@@ -98,9 +101,9 @@ new #[Layout('layouts.admin')] class extends Component {
     {
         $this->validate([
             'name'            => 'required|string|max:100',
-            'type'            => 'required|in:faculty_cup,departmental_league,friendly',
+            'type'            => ['required', Rule::enum(TournamentType::class)],
             'season'          => 'required|string|max:20',
-            'status'          => 'required|in:upcoming,active,completed',
+            'status'          => ['required', Rule::enum(TournamentStatus::class)],
             'active_matchday' => 'required|integer|min:1',
            'squad_size'      => 'required|integer|in:5,11',
             'start_date'      => 'nullable|date',
@@ -313,9 +316,9 @@ if ($this->editingId) {
                     <label class="block text-xs font-mono text-on-surface-variant uppercase tracking-wider mb-1.5">Type</label>
                     <select wire:model="type"
                             class="w-full px-4 py-2.5 rounded-xl text-sm text-white border border-outline-variant/20 bg-[#0d110f] focus:outline-none focus:border-[#00E676]/50 transition-all appearance-none cursor-pointer">
-                        <option value="faculty_cup">Faculty Cup</option>
-                        <option value="departmental_league">Departmental League</option>
-                        <option value="friendly">Friendly</option>
+                        @foreach(\App\Enums\TournamentType::cases() as $case)
+                            <option value="{{ $case->value }}">{{ $case->label() }}</option>
+                        @endforeach
                     </select>
                     @error('type') <p class="text-red-400 text-xs font-mono mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -332,9 +335,9 @@ if ($this->editingId) {
                         <label class="block text-xs font-mono text-on-surface-variant uppercase tracking-wider mb-1.5">Status</label>
                         <select wire:model="status"
                                 class="w-full px-4 py-2.5 rounded-xl text-sm text-white border border-outline-variant/20 bg-[#0d110f] focus:outline-none focus:border-[#00E676]/50 transition-all appearance-none cursor-pointer">
-                            <option value="upcoming">Upcoming</option>
-                            <option value="active">Active</option>
-                            <option value="completed">Completed</option>
+                            @foreach(\App\Enums\TournamentStatus::cases() as $case)
+                                <option value="{{ $case->value }}">{{ $case->label() }}</option>
+                            @endforeach
                         </select>
                         @error('status') <p class="text-red-400 text-xs font-mono mt-1">{{ $message }}</p> @enderror
                     </div>

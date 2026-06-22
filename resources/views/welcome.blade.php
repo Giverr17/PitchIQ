@@ -63,7 +63,7 @@
                 {{-- Mini stats --}}
                 <div class="grid grid-cols-3 gap-6 pt-6 border-t border-outline-variant/20">
                     <div>
-                        <div class="font-display font-black text-2xl text-on-surface">13+</div>
+                        <div class="font-display font-black text-2xl text-on-surface">{{ $stats['faculties'] }}</div>
                         <div class="font-mono text-[11px] text-on-surface-variant tracking-wider uppercase mt-1">Faculties</div>
                     </div>
                     <div>
@@ -207,10 +207,10 @@
     <div class="max-w-7xl mx-auto px-5 sm:px-8">
         <div class="grid grid-cols-2 md:grid-cols-4">
             @foreach([
-                ['count' => 620, 'suffix' => '+', 'label' => 'Active Players', 'icon' => 'group'],
-                ['count' => 13,  'suffix' => '+', 'label' => 'Faculties',      'icon' => 'school'],
-                ['count' => 94,  'suffix' => '',  'label' => 'Games Played',   'icon' => 'sports_soccer'],
-                ['count' => 500, 'suffix' => 'k', 'label' => 'Prize Pool (₦)', 'icon' => 'emoji_events'],
+                ['count' => $stats['players'],     'suffix' => '', 'label' => 'Active Players', 'icon' => 'group'],
+                ['count' => $stats['faculties'],   'suffix' => '', 'label' => 'Faculties',      'icon' => 'school'],
+                ['count' => $stats['gamesPlayed'], 'suffix' => '', 'label' => 'Games Played',   'icon' => 'sports_soccer'],
+                ['count' => $stats['tournaments'], 'suffix' => '', 'label' => 'Tournaments',    'icon' => 'emoji_events'],
             ] as $i => $stat)
             <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3 py-8 px-6
                         anim-on-scroll border-outline-variant/15
@@ -404,51 +404,73 @@
         </a>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        @foreach([
-            ['emoji' => '🏆', 'cat' => 'Faculty Cup', 'cat_color' => 'text-primary-container', 'cat_bg' => 'bg-primary-container/10 border-primary-container/25', 'title' => 'Inter-Faculty Championship', 'date' => 'Jun 14, 2026', 'venue' => 'Campus Main Pitch', 'prize' => '₦150,000', 'participants' => 13, 'delay' => ''],
-            ['emoji' => '⚡', 'cat' => 'Special Event', 'cat_color' => 'text-secondary-container', 'cat_bg' => 'bg-secondary-container/10 border-secondary-container/25', 'title' => 'Weekend Blitz Tournament', 'date' => 'Jun 21, 2026', 'venue' => 'Sports Complex', 'prize' => '₦80,000', 'participants' => 32, 'delay' => 'anim-delay-2'],
-            ['emoji' => '🎓', 'cat' => 'Dept League', 'cat_color' => 'text-tertiary', 'cat_bg' => 'bg-tertiary/10 border-tertiary/25', 'title' => 'Departmental Showdown S2', 'date' => 'Jul 5, 2026', 'venue' => 'Multiple Venues', 'prize' => '₦60,000', 'participants' => 48, 'delay' => 'anim-delay-3'],
-        ] as $ev)
-        <div class="neo-surface rounded-2xl overflow-hidden hover-lift anim-on-scroll {{ $ev['delay'] }}">
-            <div class="p-6">
-                <div class="flex items-start justify-between mb-4">
-                    <span class="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold tracking-wider
-                                 border rounded-full px-3 py-1 {{ $ev['cat_color'] }} {{ $ev['cat_bg'] }}">
-                        {{ $ev['cat'] }}
-                    </span>
-                    <span class="text-2xl">{{ $ev['emoji'] }}</span>
-                </div>
-                <h3 class="font-display font-bold text-lg text-on-surface mb-4">{{ $ev['title'] }}</h3>
-                <div class="space-y-2">
-                    <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-on-surface-variant text-[16px]">calendar_month</span>
-                        <span class="font-mono text-xs text-on-surface-variant">{{ $ev['date'] }}</span>
+    @if($welcomeEvents->isNotEmpty())
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            @php $eventDelays = ['', 'anim-delay-2', 'anim-delay-3']; @endphp
+            @foreach($welcomeEvents as $i => $ev)
+                @php
+                    $isActive = $ev->status->value === 'active';
+                    $startLabel = $ev->start_date ? \Carbon\Carbon::parse($ev->start_date)->format('d M Y') : 'Date TBC';
+                @endphp
+                <div class="group neo-surface rounded-2xl overflow-hidden hover-lift anim-on-scroll {{ $eventDelays[$i] ?? '' }}">
+
+                    {{-- Accent strip --}}
+                    <div class="h-1 w-full"
+                         style="background: linear-gradient(90deg, {{ $isActive ? '#ef4444' : '#00E676' }}, transparent);"></div>
+
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold tracking-wider
+                                         border rounded-full px-3 py-1 text-primary-container bg-primary-container/10 border-primary-container/25">
+                                {{ $ev->type->label() }}
+                            </span>
+                            @if($isActive)
+                                <span class="badge-live">Live</span>
+                            @else
+                                <span class="badge-upcoming">Upcoming</span>
+                            @endif
+                        </div>
+
+                        <h3 class="font-display font-bold text-lg text-on-surface mb-1 truncate group-hover:text-primary-container transition-colors">
+                            {{ $ev->name }}
+                        </h3>
+                        <p class="font-mono text-[11px] text-on-surface-variant/50 mb-5">Season {{ $ev->season }}</p>
+
+                        <div class="space-y-2.5">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-on-surface-variant/60 text-[16px]">calendar_month</span>
+                                <span class="font-mono text-xs text-on-surface-variant">{{ $startLabel }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-on-surface-variant/60 text-[16px]">groups</span>
+                                <span class="font-mono text-xs text-on-surface-variant">
+                                    {{ $ev->teams_count }} {{ $ev->teams_count === 1 ? 'team' : 'teams' }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-on-surface-variant text-[16px]">location_on</span>
-                        <span class="font-mono text-xs text-on-surface-variant">{{ $ev['venue'] }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-on-surface-variant text-[16px]">group</span>
-                        <span class="font-mono text-xs text-on-surface-variant">{{ $ev['participants'] }} teams registered</span>
+
+                    <div class="border-t border-outline-variant/15 px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <div class="font-mono text-[10px] text-on-surface-variant/60 uppercase tracking-wider">Matchday</div>
+                            <div class="font-display font-bold text-primary-container">MD {{ $ev->active_matchday }}</div>
+                        </div>
+                        <a href="{{ route('events') }}"
+                           class="font-mono text-xs text-primary-container hover:text-primary border border-primary-container/40
+                                  hover:border-primary-container px-4 py-2 rounded-lg transition-all">
+                            View
+                        </a>
                     </div>
                 </div>
-            </div>
-            <div class="border-t border-outline-variant/15 px-6 py-4 flex items-center justify-between">
-                <div>
-                    <div class="font-mono text-[10px] text-on-surface-variant">Prize Pool</div>
-                    <div class="font-display font-bold text-primary-container">{{ $ev['prize'] }}</div>
-                </div>
-                <a href="{{ route('events') }}"
-                   class="font-mono text-xs text-primary-container hover:text-primary border border-primary-container/40
-                          hover:border-primary-container px-4 py-2 rounded-lg transition-all">
-                    Register
-                </a>
-            </div>
+            @endforeach
         </div>
-        @endforeach
-    </div>
+    @else
+        <div class="rounded-2xl border border-outline-variant/15 p-14 text-center" style="background: rgba(13,17,15,0.7);">
+            <span class="material-symbols-outlined text-4xl text-on-surface-variant/20 block mb-3">emoji_events</span>
+            <h3 class="font-display font-black text-lg text-white mb-2">No Events Yet</h3>
+            <p class="font-mono text-xs text-on-surface-variant/40">Tournaments will appear here once the admin creates them.</p>
+        </div>
+    @endif
 </section>
 
 {{-- ══════════════════════════════════════════════
@@ -521,45 +543,47 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/10">
-                    @foreach([
-                        ['rank' => 1,  'medal' => '🥇', 'name' => 'TundeTheGoat',   'faculty' => 'Engineering',      'squad' => 'Iron Giants FC',   'pts' => 1842, 'trend' => '+'],
-                        ['rank' => 2,  'medal' => '🥈', 'name' => 'LexiLawFC',       'faculty' => 'Law',              'squad' => 'Objection United', 'pts' => 1779, 'trend' => '+'],
-                        ['rank' => 3,  'medal' => '🥉', 'name' => 'MedBallKing',     'faculty' => 'Medicine',         'squad' => 'Scalpel XI',       'pts' => 1703, 'trend' => '-'],
-                        ['rank' => 4,  'medal' => '',   'name' => 'ScienceWizard',   'faculty' => 'Sciences',         'squad' => 'Periodic Eleven',  'pts' => 1688, 'trend' => '+'],
-                        ['rank' => 5,  'medal' => '',   'name' => 'FarmKingFC',      'faculty' => 'Agriculture',      'squad' => 'Green Valley XI',  'pts' => 1652, 'trend' => '='],
-                    ] as $p)
-                    <tr class="table-row-hover transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-2">
-                                @if($p['medal'])
-                                <span class="text-lg">{{ $p['medal'] }}</span>
-                                @else
-                                <span class="font-mono font-bold text-on-surface-variant text-sm w-[26px] text-center">{{ $p['rank'] }}</span>
-                                @endif
-                            </div>
-                        </td>
-                        <td class="px-4 py-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/40
-                                            flex items-center justify-center flex-shrink-0">
-                                    <span class="font-mono text-[11px] text-on-surface-variant font-bold">
-                                        {{ strtoupper(substr($p['name'], 0, 2)) }}
-                                    </span>
+                    @forelse($topManagers as $i => $p)
+                        @php $medal = ['🥇', '🥈', '🥉'][$i] ?? ''; @endphp
+                        <tr class="table-row-hover transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    @if($medal)
+                                        <span class="text-lg">{{ $medal }}</span>
+                                    @else
+                                        <span class="font-mono font-bold text-on-surface-variant text-sm w-[26px] text-center">{{ $i + 1 }}</span>
+                                    @endif
                                 </div>
-                                <span class="font-display font-semibold text-sm text-on-surface">{{ $p['name'] }}</span>
-                            </div>
-                        </td>
-                        <td class="px-4 py-4 hidden sm:table-cell">
-                            <span class="font-mono text-xs text-on-surface-variant">{{ $p['faculty'] }}</span>
-                        </td>
-                        <td class="px-4 py-4 hidden md:table-cell">
-                            <span class="font-mono text-xs text-on-surface-variant">{{ $p['squad'] }}</span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <span class="font-display font-bold text-primary-container">{{ number_format($p['pts']) }}</span>
-                        </td>
-                    </tr>
-                    @endforeach
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/40
+                                                flex items-center justify-center flex-shrink-0">
+                                        <span class="font-mono text-[11px] text-on-surface-variant font-bold">
+                                            {{ strtoupper(substr($p->manager, 0, 2)) }}
+                                        </span>
+                                    </div>
+                                    <span class="font-display font-semibold text-sm text-on-surface">{{ $p->manager }}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 hidden sm:table-cell">
+                                <span class="font-mono text-xs text-on-surface-variant">{{ $p->faculty ?? '—' }}</span>
+                            </td>
+                            <td class="px-4 py-4 hidden md:table-cell">
+                                <span class="font-mono text-xs text-on-surface-variant">{{ $p->squad ?? '—' }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <span class="font-display font-bold text-primary-container">{{ number_format($p->pts) }}</span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center">
+                                <span class="material-symbols-outlined text-3xl text-on-surface-variant/20 block mb-2">leaderboard</span>
+                                <p class="font-mono text-xs text-on-surface-variant/40">No rankings yet — be the first to climb the board.</p>
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -576,7 +600,7 @@
              style="background: radial-gradient(ellipse, rgba(0,230,118,0.08) 0%, transparent 70%);"></div>
     </div>
     <div class="max-w-3xl mx-auto px-5 sm:px-8 text-center relative anim-on-scroll">
-        <div class="badge-live inline-flex mb-6">JOIN 620+ CAMPUS PLAYERS</div>
+        <div class="badge-live inline-flex mb-6">JOIN {{ $stats['players'] }} CAMPUS PLAYERS</div>
         <h2 class="font-display font-black text-5xl md:text-6xl text-on-surface tracking-tight mb-6">
             Ready to dominate<br />
             <span class="text-gradient">your campus?</span>

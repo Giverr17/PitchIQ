@@ -10,6 +10,8 @@ cmds = [
     "cp /assets/worker-nginx.conf /etc/supervisor/conf.d/worker-nginx.conf",
     "cp /assets/worker-phpfpm.conf /etc/supervisor/conf.d/worker-phpfpm.conf",
     "cp /assets/supervisord.conf /etc/supervisord.conf",
+    "cp /assets/worker-queue.conf /etc/supervisor/conf.d/worker-queue.conf",
+    "cp /assets/worker-reverb.conf /etc/supervisor/conf.d/worker-reverb.conf",
     "chmod +x /assets/start.sh",
     "composer install --no-dev --optimize-autoloader",
     "php artisan config:cache",
@@ -21,6 +23,29 @@ cmds = [
 cmd = "/assets/start.sh"
 
 [staticAssets]
+"worker-reverb.conf" = '''
+[program:worker-reverb]
+process_name=%(program_name)s_%(process_num)02d
+command=php /app/artisan reverb:start --host=0.0.0.0 --port=8080
+user=www-data
+numprocs=1
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/worker-reverb.log
+stderr_logfile=/var/log/worker-reverb.log
+'''
+"worker-queue.conf" = '''
+[program:worker-queue]
+process_name=%(program_name)s_%(process_num)02d
+command=php /app/artisan queue:work --sleep=3 --tries=3 --max-time=3600 --backoff=10
+user=www-data
+numprocs=1
+autostart=true
+autorestart=true
+stopwaitsecs=3600
+stdout_logfile=/var/log/worker-queue.log
+stderr_logfile=/var/log/worker-queue.log
+'''
 "start.sh" = '''
 #!/bin/bash
 mkdir -p /var/log/nginx

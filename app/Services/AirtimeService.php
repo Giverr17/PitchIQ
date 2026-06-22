@@ -13,8 +13,8 @@ class AirtimeService
      * Send airtime to a phone number.
      * Returns ['success' => bool, 'reference' => string, 'message' => string].
      *
-     * SIMULATED for now. To go live, replace the body of sendReal()
-     * with a real VTpass/Reloadly API call and call it from here.
+     * Provider: VTU.ng (https://vtu.ng/wp-json), API v2.
+     * Simulated unless services.airtime.live (AIRTIME_LIVE) is true.
      */
     public function send(string $phone, int $amount): array
     {

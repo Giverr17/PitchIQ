@@ -16,6 +16,7 @@ return new class extends Migration {
             $table->foreignId('player_id')->constrained()->cascadeOnDelete();
             $table->unsignedTinyInteger('minutes_played')->default(0);
             $table->unsignedTinyInteger('saves')->default(0);
+            $table->tinyInteger('bonus')->default(0);
             $table->unique(['fixture_id', 'player_id']);
             $table->timestamps();
         });
