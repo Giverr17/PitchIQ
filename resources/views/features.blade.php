@@ -129,3 +129,7 @@
     </div>
 </div>
 @endsection
+
+@push('ads')
+    @include('partials.propeller-ad')
+@endpush

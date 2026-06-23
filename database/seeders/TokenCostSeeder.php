@@ -14,7 +14,7 @@ class TokenCostSeeder extends Seeder
                 'feature'     => TokenCost::PREDICTION,
                 'label'       => 'Match Prediction',
                 'description' => 'Tokens spent when a user submits predictions for a fixture.',
-                'cost'        => 1,
+                'cost'        => 5,
             ],
             [
                 'feature'     => TokenCost::SQUAD_BUILDER,

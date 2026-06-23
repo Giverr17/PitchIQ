@@ -51,11 +51,19 @@ new #[Layout('layouts.admin')] class extends Component
 
         AppSetting::updateOrCreate(
             ['key' => AppSetting::FANTASY_BUDGET],
-            ['value' => (string) (int) $this->fantasyBudget],
+            [
+                'value'       => (string) (int) $this->fantasyBudget,
+                'label'       => 'Fantasy Squad Budget (11-a-side)',
+                'description' => 'Total budget cap for picking an 11-a-side squad.',
+            ],
         );
         AppSetting::updateOrCreate(
             ['key' => AppSetting::FANTASY_BUDGET_5],
-            ['value' => (string) (int) $this->fantasyBudget5],
+            [
+                'value'       => (string) (int) $this->fantasyBudget5,
+                'label'       => 'Fantasy Squad Budget (5-a-side)',
+                'description' => 'Total budget cap for picking a 5-a-side squad.',
+            ],
         );
 
         $this->toast     = 'Settings saved.';

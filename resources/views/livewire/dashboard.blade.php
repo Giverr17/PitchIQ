@@ -98,6 +98,37 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
             $elapsed = $lastAd->created_at->diffInSeconds(now());
             $this->cooldownRemaining = max(0, $this->adCooldownSeconds - $elapsed);
         }
+
+        $this->claimDailyBonus();
+    }
+
+    private function claimDailyBonus(): void
+    {
+        $user = Auth::user();
+
+        // Once per calendar day — has the user already claimed today's bonus?
+        $alreadyClaimed = \App\Models\TokenTransaction::where('user_id', $user->id)
+            ->where('description', 'Daily login bonus')
+            ->whereDate('created_at', now()->toDateString())
+            ->exists();
+
+        if ($alreadyClaimed) {
+            return;   // already got it today, do nothing
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
+            $user->increment('tokens', 10);
+
+            \App\Models\TokenTransaction::create([
+                'user_id' => $user->id,
+                'type' => \App\Enums\TokenTransactionType::Earned,
+                'amount' => 10,
+                'description' => 'Daily login bonus',
+            ]);
+        });
+
+        // Surface a small toast so the user knows they got it
+        session()->flash('daily_bonus', '🎁 +10 daily bonus tokens! Welcome back.');
     }
 
     public function refreshTokens(): void
@@ -204,6 +235,12 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
 
 <div class="max-w-7xl mx-auto px-5 sm:px-8 py-10 space-y-8">
 
+    @if(session('daily_bonus'))
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
+            class="p-3 rounded-xl border border-[#00E676]/40 bg-[#00E676]/10 text-[#00E676] font-mono text-xs font-semibold">
+            {{ session('daily_bonus') }}
+        </div>
+    @endif
     {{-- Flash message --}}
     @if(session()->has('message'))
         <div class="p-4 rounded-2xl border flex items-center justify-between gap-4 bg-[#00E676]/10 border-[#00E676]/30 text-[#00E676]"
@@ -222,8 +259,8 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0" x-init="setTimeout(() => show = false, 4000)"
             class="fixed z-[60] inset-x-4 bottom-4 sm:inset-x-auto sm:bottom-auto sm:top-20 sm:right-4 sm:max-w-sm
-                                   p-4 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center gap-2.5
-                                   {{ $adMessageType === 'success' ? 'bg-[#00E676]/15 border-[#00E676]/40 text-[#00E676]' : 'bg-amber-500/15 border-amber-500/40 text-amber-400' }}">
+                                               p-4 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center gap-2.5
+                                               {{ $adMessageType === 'success' ? 'bg-[#00E676]/15 border-[#00E676]/40 text-[#00E676]' : 'bg-amber-500/15 border-amber-500/40 text-amber-400' }}">
             <span
                 class="material-symbols-outlined text-[18px]">{{ $adMessageType === 'success' ? 'check_circle' : 'schedule' }}</span>
             <span class="font-mono text-xs font-semibold">{{ $adMessage }}</span>
@@ -262,7 +299,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                 </div>
                 <div class="w-px h-10 bg-outline-variant/20"></div>
 
-                {{-- Watch ad button --}}
+                <!-- {{-- Watch ad button --}}
                 {{-- Replace the watch-ad button wrapper with this --}}
                 <div x-data="{
         remaining: @entangle('cooldownRemaining'),
@@ -307,7 +344,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                                 Simulated — replace with PropellerAds</p>
                         </div>
                     </div>
-                </div>
+                </div> -->
 
                 <a href="{{ route('squad.builder') }}"
                     class="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer"
@@ -550,9 +587,9 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                             ['route' => 'mini-leagues', 'icon' => 'groups', 'label' => 'Mini Leagues'],
                             ['route' => 'predictions.index', 'icon' => 'query_stats', 'label' => 'Predictions'],
                         ] as $link)
-                                        <a href="{{ route($link['route']) }}"
-                                           class="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-outline-variant/15 text-on-surface-variant hover:text-[#00E676] hover:border-[#00E676]/30 transition-all text-xs font-mono font-bold uppercase tracking-wider">
-                                            <span class="material-symbols-outlined text-[16px]">{{ $link['icon'] }}</span>
+                                                    <a href="{{ route($link['route']) }}"
+                                                       class="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-outline-variant/15 text-on-surface-variant hover:text-[#00E676] hover:border-[#00E676]/30 transition-all text-xs font-mono font-bold uppercase tracking-wider">
+                                                        <span class="material-symbols-outlined text-[16px]">{{ $link['icon'] }}</span>
                             {{ $link['label'] }}
                         </a>
                     @endforeach
@@ -562,4 +599,8 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                 <livewire:campus-ad-banner />
         </div>
     </div>
+
+    @push('ads')
+        @include('partials.propeller-ad')
+    @endpush
 </div>

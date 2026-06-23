@@ -290,4 +290,8 @@ new #[Layout('layouts.app')] class extends Component {
             </div>
         @endforelse
     </div>
+
+    @push('ads')
+        @include('partials.propeller-ad')
+    @endpush
 </div>

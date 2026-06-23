@@ -63,11 +63,11 @@
                 {{-- Mini stats --}}
                 <div class="grid grid-cols-3 gap-6 pt-6 border-t border-outline-variant/20">
                     <div>
-                        <div class="font-display font-black text-2xl text-on-surface">{{ $stats['faculties'] }}</div>
+                        <div class="font-display font-black text-2xl text-on-surface">{{ $stats['faculties'] }}+</div>
                         <div class="font-mono text-[11px] text-on-surface-variant tracking-wider uppercase mt-1">Faculties</div>
                     </div>
                     <div>
-                        <div class="font-display font-black text-2xl text-on-surface">10-50</div>
+                        <div class="font-display font-black text-2xl text-on-surface">2-5</div>
                         <div class="font-mono text-[11px] text-on-surface-variant tracking-wider uppercase mt-1">Tokens/Game</div>
                     </div>
                     <div>
@@ -208,7 +208,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4">
             @foreach([
                 ['count' => $stats['players'],     'suffix' => '', 'label' => 'Active Players', 'icon' => 'group'],
-                ['count' => $stats['faculties'],   'suffix' => '', 'label' => 'Faculties',      'icon' => 'school'],
+                ['count' => $stats['faculties'],   'suffix' => '+', 'label' => 'Faculties',      'icon' => 'school'],
                 ['count' => $stats['gamesPlayed'], 'suffix' => '', 'label' => 'Games Played',   'icon' => 'sports_soccer'],
                 ['count' => $stats['tournaments'], 'suffix' => '', 'label' => 'Tournaments',    'icon' => 'emoji_events'],
             ] as $i => $stat)
@@ -629,3 +629,7 @@
 </section>
 
 @endsection
+
+@push('ads')
+    @include('partials.propeller-ad')
+@endpush

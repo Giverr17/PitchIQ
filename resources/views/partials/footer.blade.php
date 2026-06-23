@@ -63,9 +63,9 @@
                 <ul class="space-y-3.5">
                     <li><a href="{{ route('how-it-works') }}" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">How It Works</a></li>
                     <li><a href="{{ route('features') }}"     class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Features</a></li>
-                    <li><a href="#"                           class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Scoring System</a></li>
-                    <li><a href="#"                           class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Game Rules</a></li>
-                    <li><a href="#"                           class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">FAQ</a></li>
+                    <li><a href="{{ route('scoring') }}"      class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Scoring System</a></li>
+                    <li><a href="{{ route('rules') }}"        class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Game Rules</a></li>
+                    <li><a href="{{ route('how-it-works') }}#faqs" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">FAQ</a></li>
                 </ul>
             </div>
 
@@ -73,10 +73,10 @@
             <div>
                 <h3 class="font-mono text-[10px] font-bold tracking-[0.12em] text-on-surface uppercase mb-5">Legal</h3>
                 <ul class="space-y-3.5">
-                    <li><a href="#" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Privacy Policy</a></li>
-                    <li><a href="#" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Terms of Service</a></li>
-                    <li><a href="#" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Cookie Policy</a></li>
-                    <li><a href="#" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Contact Us</a></li>
+                    <li><a href="{{ route('privacy') }}" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Privacy Policy</a></li>
+                    <li><a href="{{ route('terms') }}"   class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Terms of Service</a></li>
+                    <li><a href="{{ route('cookies') }}" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Cookie Policy</a></li>
+                    <li><a href="{{ route('contact') }}" class="text-sm text-on-surface-variant hover:text-primary-container transition-colors">Contact Us</a></li>
                 </ul>
             </div>
         </div>

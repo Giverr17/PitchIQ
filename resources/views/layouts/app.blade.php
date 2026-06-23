@@ -72,6 +72,9 @@
 
     {{-- Page-specific scripts --}}
     @yield('scripts')
+
+    {{-- Ad slot — only pages that @push('ads') will show ads here --}}
+    @stack('ads')
 </body>
 
 </html>

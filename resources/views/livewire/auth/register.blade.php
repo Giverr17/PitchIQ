@@ -205,14 +205,9 @@ new #[Layout('layouts.app')] class extends Component {
                         class="input-field cursor-pointer transition-all duration-200 @error('faculty') border-error/60 focus:border-error focus:ring-2 focus:ring-error/20 @enderror"
                         @error('faculty') style="box-shadow: 0 0 12px rgba(255,180,171,0.08);" @enderror>
                         <option value="" class="bg-surface text-on-surface-variant/60">Select your faculty...</option>
-                        <option value="Engineering" class="bg-surface text-on-surface">Faculty of Engineering</option>
-                        <option value="Sciences" class="bg-surface text-on-surface">Faculty of Sciences</option>
-                        <option value="Arts" class="bg-surface text-on-surface">Faculty of Arts</option>
-                        <option value="Clinical Sciences" class="bg-surface text-on-surface">Faculty of Clinical
-                            Sciences</option>
-                        <option value="Agriculture" class="bg-surface text-on-surface">Faculty of Agriculture</option>
-                        <option value="Management Sciences" class="bg-surface text-on-surface">Faculty of Management
-                            Sciences</option>
+                        @foreach(config('faculties') as $faculty)
+                            <option value="{{ $faculty }}" class="bg-surface text-on-surface">Faculty of {{ $faculty }}</option>
+                        @endforeach
                     </select>
                     @error('faculty')
                         <span class="text-xs text-error font-mono flex items-center gap-1.5 mt-1 error-animate">
@@ -281,4 +276,8 @@ new #[Layout('layouts.app')] class extends Component {
             </p>
         </div>
     </div>
+
+    @push('ads')
+        @include('partials.propeller-ad')
+    @endpush
 </div>

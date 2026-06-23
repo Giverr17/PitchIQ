@@ -4,7 +4,6 @@ use App\Enums\FixtureStatus;
 use App\Enums\TournamentStatus;
 use App\Models\Fixture;
 use App\Models\FantasyTeam;
-use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +22,7 @@ Route::get('/', function () {
     // Real platform stats (no fabricated numbers)
     $stats = [
         'players'     => User::count(),
-        'faculties'   => Team::whereNotNull('faculty')->distinct()->count('faculty'),
+        'faculties'   => count(config('faculties')),
         'gamesPlayed' => Fixture::where('status', FixtureStatus::Completed)->count(),
         'tournaments' => Tournament::count(),
     ];
@@ -85,11 +84,19 @@ Volt::route('/leaderboard', 'leaderboard')->name('leaderboard');
 Route::get('/how-it-works', fn() => view('how-it-works'))->name('how-it-works');
 Route::get('/features', fn() => view('features'))->name('features');
 Route::get('/prizes', fn() => view('prizes'))->name('prizes');
+Route::view('/scoring', 'scoring')->name('scoring');
+Route::view('/rules', 'rules')->name('rules');
+Route::view('/contact', 'contact')->name('contact');
+Route::view('/privacy', 'privacy')->name('privacy');
+Route::view('/terms', 'terms')->name('terms');
+Route::view('/cookies', 'cookies')->name('cookies');
 
 // ─── Guest auth pages (Livewire Volt) ─────────────────────────────────────────
 Route::middleware('guest')->group(function () {
     Volt::route('/login', 'auth.login')->name('login');
     Volt::route('/register', 'auth.register')->name('register');
+    Volt::route('/forgot-password', 'auth.forgot-password')->name('password.request');
+    Volt::route('/reset-password/{token}', 'auth.reset-password')->name('password.reset');
 });
 Route::get('/campus-ads/{ad}/click', function (\App\Models\CampusAd $ad) {
     $ad->increment('clicks');

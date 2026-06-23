@@ -61,6 +61,15 @@ new #[Layout('layouts.app')] class extends Component {
                 <p class="text-on-surface-variant text-sm">Sign in to manage your fantasy squad.</p>
             </div>
 
+            {{-- Flash status (e.g. after a password reset) --}}
+            @if(session('status'))
+                <div class="mb-6 flex items-start gap-2.5 rounded-xl border border-primary-container/30 px-4 py-3"
+                     style="background:rgba(0,230,118,0.06);">
+                    <span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+                    <span class="text-xs text-primary-container font-mono">{{ session('status') }}</span>
+                </div>
+            @endif
+
             {{-- Form --}}
             <form wire:submit.prevent="login" class="space-y-6" novalidate>
 
@@ -89,14 +98,24 @@ new #[Layout('layouts.app')] class extends Component {
                         <label for="password" class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider font-mono">
                             Password
                         </label>
-                        <a href="#" class="text-xs font-mono hover:underline text-primary-container">Forgot password?</a>
+                        <a href="{{ route('password.request') }}" class="text-xs font-mono hover:underline text-primary-container">Forgot password?</a>
                     </div>
-                    <input id="password"
-                           type="password"
-                           wire:model="password"
-                           placeholder="••••••••"
-                           class="input-field transition-all duration-200 @error('password') border-error/60 focus:border-error focus:ring-2 focus:ring-error/20 @enderror"
-                           @error('password') style="box-shadow: 0 0 12px rgba(255,180,171,0.08);" @enderror />
+                    <div class="relative" x-data="{ show: false }">
+                        <input id="password"
+                               :type="show ? 'text' : 'password'"
+                               type="password"
+                               wire:model="password"
+                               placeholder="••••••••"
+                               class="input-field pr-11 w-full transition-all duration-200 @error('password') border-error/60 focus:border-error focus:ring-2 focus:ring-error/20 @enderror"
+                               @error('password') style="box-shadow: 0 0 12px rgba(255,180,171,0.08);" @enderror />
+                        <button type="button"
+                                @click="show = !show"
+                                tabindex="-1"
+                                :aria-label="show ? 'Hide password' : 'Show password'"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-primary-container transition-colors cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px]" x-text="show ? 'visibility_off' : 'visibility'">visibility</span>
+                        </button>
+                    </div>
                     @error('password')
                         <span class="text-xs text-error font-mono flex items-center gap-1.5 mt-1 error-animate">
                             <span class="material-symbols-outlined text-[14px]">warning</span>
@@ -140,4 +159,8 @@ new #[Layout('layouts.app')] class extends Component {
             </p>
         </div>
     </div>
+
+    @push('ads')
+        @include('partials.propeller-ad')
+    @endpush
 </div>

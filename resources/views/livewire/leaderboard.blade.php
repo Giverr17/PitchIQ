@@ -348,4 +348,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
         </div>
     @endif
 
+    @push('ads')
+        @include('partials.propeller-ad')
+    @endpush
 </div>
