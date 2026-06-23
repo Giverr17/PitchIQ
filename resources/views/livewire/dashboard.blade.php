@@ -22,10 +22,10 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
     public string $adMessageType = 'success';
 
     // Ad reward config
-    public int $adReward = 15;
-    public int $adCooldownSeconds = 90;
-    public int $adsPerHour = 5;
-    public int $adsPerDay = 20;
+    public int $adReward = 5;
+    public int $adCooldownSeconds = 60;
+    public int $adsPerHour = 3;
+    public int $adsPerDay = 5;
     public int $cooldownRemaining = 0;
 
     public string $referralCode = '';
@@ -166,7 +166,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
         $lastAd = $recentAds->first();
         if ($lastAd && $lastAd->created_at->diffInSeconds($now) < $this->adCooldownSeconds) {
             $wait = $this->adCooldownSeconds - $lastAd->created_at->diffInSeconds($now);
-            $this->flashAd("Please wait {$wait}s before watching another ad.", 'error');
+            $this->flashAd("Please wait {$wait}s before claiming again.", 'error');
             return;
         }
 
@@ -299,13 +299,13 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                 </div>
                 <div class="w-px h-10 bg-outline-variant/20"></div>
 
-                <!-- {{-- Watch ad button --}}
+                {{-- Watch ad button --}}
                 {{-- Replace the watch-ad button wrapper with this --}}
                 <div x-data="{
         remaining: @entangle('cooldownRemaining'),
         adPlaying: false,
         adCountdown: 5,
-        playTestAd() {
+        claimBonus() {
             this.adPlaying = true;
             this.adCountdown = 5;
             const timer = setInterval(() => {
@@ -320,15 +320,15 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
      }" x-init="setInterval(() => { if (remaining > 0) remaining-- }, 1000)">
 
                     {{-- The button --}}
-                    <button x-on:click="playTestAd()" x-bind:disabled="remaining > 0 || adPlaying"
+                    <button x-on:click="claimBonus()" x-bind:disabled="remaining > 0 || adPlaying"
                         class="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         x-bind:class="(remaining > 0 || adPlaying)
                 ? 'text-on-surface-variant/50 border border-outline-variant/20 cursor-not-allowed'
                 : 'text-white border border-outline-variant/20 hover:border-[#00E676]/40 cursor-pointer'">
-                        <span class="material-symbols-outlined text-[16px]">smart_display</span>
-                        <span x-show="remaining <= 0 && !adPlaying">Watch Ad +{{ $adReward }}</span>
+                        <span class="material-symbols-outlined text-[16px]">redeem</span>
+                        <span x-show="remaining <= 0 && !adPlaying">Bonus Tokens +{{ $adReward }}</span>
                         <span x-show="remaining > 0" x-text="`Wait ${remaining}s`"></span>
-                        <span x-show="adPlaying">Playing...</span>
+                        <span x-show="adPlaying">Claiming...</span>
                     </button>
 
                     {{-- Fake ad modal (TEST ONLY — swap for PropellerAds later) --}}
@@ -338,13 +338,13 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                             <div
                                 class="w-20 h-20 rounded-full border-4 border-[#00E676] border-t-transparent animate-spin mx-auto mb-6">
                             </div>
-                            <p class="font-mono text-sm text-white mb-2">Test ad playing...</p>
+                            <p class="font-mono text-sm text-white mb-2">Claiming bonus...</p>
                             <p class="font-mono text-3xl font-black" style="color:#00E676;" x-text="adCountdown"></p>
                             <p class="font-mono text-[10px] text-on-surface-variant/40 mt-4 uppercase tracking-widest">
-                                Simulated — replace with PropellerAds</p>
+                                Crediting your tokens…</p>
                         </div>
                     </div>
-                </div> -->
+                </div>
 
                 <a href="{{ route('squad.builder') }}"
                     class="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer"
