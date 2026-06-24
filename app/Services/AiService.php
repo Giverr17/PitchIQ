@@ -437,6 +437,67 @@ class AiService
     }
 
     /**
+     * Generate a set of teams from a free-text description, for a tournament the
+     * admin already picked. The admin reviews the proposals before they're saved.
+     *
+     * @param  string $instruction  e.g. "8 faculty teams" or a pasted list of faculties
+     * @return array{success:bool, teams:array, warnings:array, message:string}
+     */
+    public function generateTeams(string $instruction): array
+    {
+        $prompt = <<<PROMPT
+    Generate football teams for a Nigerian university campus tournament based on this description:
+    "{$instruction}"
+
+    Each team has:
+    - name (string, required): a realistic team name (e.g. a faculty/department side).
+    - faculty (string or null): the faculty if implied (e.g. "Engineering").
+    - department (string or null): the department if implied (e.g. "Computer Science").
+    - colour: a distinct hex colour per team (e.g. "#00E676", "#3B82F6", "#F59E0B", "#EF4444", "#A78BFA", "#F472B6"). Give EACH team a DIFFERENT colour.
+
+    Rules:
+    - If a count is given (e.g. "8 teams"), produce exactly that many teams.
+    - If specific faculties/departments/names are listed, use them as the teams.
+    - Keep names realistic; never invent nonsense entries or duplicate a team.
+
+    For anything ambiguous or assumed, add a short note to warnings.
+
+    Respond with ONLY this JSON, no markdown:
+    {"teams": [{"name": "", "faculty": null, "department": null, "colour": ""}], "warnings": ["string"]}
+    PROMPT;
+
+        try {
+            $raw = $this->runPrompt($prompt);
+            $raw = preg_replace('/^```(json)?|```$/m', '', $raw);
+            $data = json_decode(trim($raw), true);
+
+            if (!is_array($data) || !isset($data['teams'])) {
+                return ['success' => false, 'teams' => [], 'warnings' => [], 'message' => 'AI returned an unreadable response.'];
+            }
+
+            $teams = collect($data['teams'] ?? [])
+                ->filter(fn($tm) => !empty($tm['name']))
+                ->map(fn($tm) => [
+                    'name' => (string) $tm['name'],
+                    'faculty' => $tm['faculty'] ?? null,
+                    'department' => $tm['department'] ?? null,
+                    'colour' => preg_match('/^#[0-9A-Fa-f]{6}$/', $tm['colour'] ?? '') ? $tm['colour'] : '#00E676',
+                ])->values()->toArray();
+
+            return [
+                'success' => true,
+                'teams' => $teams,
+                'warnings' => array_values((array) ($data['warnings'] ?? [])),
+                'message' => 'Generated.',
+            ];
+
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('AI generateTeams failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'teams' => [], 'warnings' => [], 'message' => $this->classifyError($e)];
+        }
+    }
+
+    /**
      * Build a player roster for a team — either from a pasted list of names,
      * or generated to a requested position spread.
      *

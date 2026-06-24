@@ -23,6 +23,13 @@ new #[Layout('layouts.admin')] class extends Component {
     public bool $showModal = false;
     public ?int $editingId = null;
 
+    // AI Team Builder
+    public int|string $aiTournamentId = '';
+    public string $aiInstruction = '';
+    public array $aiTeams = [];
+    public array $aiWarnings = [];
+    public string $aiMessage = '';
+
     public function mount(): void
     {
         $this->tournaments = Tournament::orderBy('name')->get(['id', 'name'])->toArray();
@@ -36,6 +43,55 @@ new #[Layout('layouts.admin')] class extends Component {
             ->latest()
             ->get()
             ->toArray();
+    }
+
+    public function generateTeams(\App\Services\AiService $ai): void
+    {
+        if (!$this->aiTournamentId) {
+            $this->aiMessage = 'Pick a tournament first.';
+            return;
+        }
+        if (trim($this->aiInstruction) === '') {
+            $this->aiMessage = 'Describe the teams (e.g. "8 faculty teams") or paste faculty/department names.';
+            return;
+        }
+
+        $result = $ai->generateTeams($this->aiInstruction);
+
+        if (!$result['success']) {
+            $this->aiMessage = $result['message'] . ' Or add teams manually.';
+            $this->aiTeams = [];
+            return;
+        }
+
+        $this->aiTeams = $result['teams'];
+        $this->aiWarnings = $result['warnings'];
+        $count = count($this->aiTeams);
+        $this->aiMessage = "Built {$count} team(s) — review below, then Create All.";
+    }
+
+    public function createAiTeams(): void
+    {
+        if (empty($this->aiTeams) || !$this->aiTournamentId) {
+            return;
+        }
+
+        foreach ($this->aiTeams as $t) {
+            Team::create([
+                'tournament_id' => $this->aiTournamentId,
+                'name' => $t['name'],
+                'faculty' => $t['faculty'] ?? null,
+                'department' => $t['department'] ?? null,
+                'colour' => $t['colour'] ?? '#00E676',
+            ]);
+        }
+
+        $count = count($this->aiTeams);
+        $this->aiTeams = [];
+        $this->aiInstruction = '';
+        $this->aiMessage = '';
+        unset($this->teams);   // refresh the computed list
+        $this->dispatch('notify', message: "{$count} teams created.");
     }
 
     public function openCreate(): void
@@ -121,6 +177,77 @@ new #[Layout('layouts.admin')] class extends Component {
             <span class="material-symbols-outlined text-[16px]">add</span>
             New Team
         </button>
+    </div>
+
+    {{-- AI Team Builder --}}
+    <div class="rounded-2xl border border-[#00E676]/30 p-5" style="background:rgba(0,230,118,0.03);">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-[18px]" style="color:#00E676;">auto_awesome</span>
+            <p class="text-[11px] font-mono font-bold uppercase tracking-widest" style="color:#00E676;">AI Team Builder</p>
+        </div>
+        <p class="font-mono text-[10px] text-on-surface-variant/50 mb-3">
+            Pick a tournament, then describe the teams or paste faculty/department names. AI proposes teams &amp; colours
+            for you to review.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <select wire:model="aiTournamentId"
+                class="px-4 py-2.5 rounded-xl text-sm text-white border border-outline-variant/20 bg-[#0d110f] font-mono cursor-pointer focus:outline-none focus:border-[#00E676]/50">
+                <option value="">Select tournament…</option>
+                @foreach($tournaments as $t)
+                    <option value="{{ $t['id'] }}">{{ $t['name'] }}</option>
+                @endforeach
+            </select>
+            <input wire:model="aiInstruction" type="text" placeholder='e.g. "8 faculty teams" or paste faculty names'
+                class="sm:col-span-2 px-4 py-2.5 rounded-xl text-sm text-white border border-outline-variant/20 bg-white/5 font-mono focus:outline-none focus:border-[#00E676]/50" />
+        </div>
+
+        <button wire:click="generateTeams" wire:loading.attr="disabled" wire:target="generateTeams"
+            class="px-5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer disabled:opacity-50"
+            style="background:linear-gradient(135deg,#00E676 0%,#00b359 100%);">
+            <span wire:loading.remove wire:target="generateTeams">✨ Build Teams</span>
+            <span wire:loading wire:target="generateTeams">Thinking…</span>
+        </button>
+
+        @if($aiMessage)
+            <p class="font-mono text-[10px] text-on-surface-variant/70 mt-3">{{ $aiMessage }}</p>
+        @endif
+
+        {{-- Proposed teams review --}}
+        @if(count($aiTeams) > 0)
+            <div class="mt-4 rounded-xl border border-[#00E676]/20 p-3" style="background:rgba(255,255,255,0.02);">
+                <p class="text-[10px] font-mono font-bold uppercase tracking-widest mb-2" style="color:#00E676;">
+                    Proposed teams ({{ count($aiTeams) }})
+                </p>
+                <div class="space-y-1.5 max-h-64 overflow-y-auto">
+                    @foreach($aiTeams as $t)
+                        <div class="flex items-center gap-3 px-3 py-2 rounded-lg border border-outline-variant/15"
+                            style="background:rgba(255,255,255,0.02);">
+                            <span class="w-3 h-3 rounded-full flex-shrink-0"
+                                style="background:{{ $t['colour'] }}; box-shadow:0 0 8px {{ $t['colour'] }}55;"></span>
+                            <span class="text-sm text-white font-bold flex-1 truncate">{{ $t['name'] }}</span>
+                            @if($t['faculty'])
+                                <span class="font-mono text-[10px] text-on-surface-variant/50">{{ $t['faculty'] }}</span>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+
+                @if(count($aiWarnings) > 0)
+                    <div class="mt-2 rounded-lg border border-amber-500/25 p-2.5" style="background:rgba(253,212,0,0.04);">
+                        @foreach($aiWarnings as $w)
+                            <p class="font-mono text-[10px] text-on-surface-variant/70">• {{ $w }}</p>
+                        @endforeach
+                    </div>
+                @endif
+
+                <button wire:click="createAiTeams"
+                    class="mt-3 px-5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer"
+                    style="background:linear-gradient(135deg,#00E676 0%,#00b359 100%);">
+                    ✓ Create All {{ count($aiTeams) }} Teams
+                </button>
+            </div>
+        @endif
     </div>
 
     {{-- Search --}}
