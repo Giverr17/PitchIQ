@@ -20,6 +20,7 @@
             <a href="{{ route('games') }}"        class="nav-link">Games</a>
             <a href="{{ route('events') }}"       class="nav-link">Events</a>
             <a href="{{ route('leaderboard') }}"  class="nav-link">Leaderboard</a>
+            <a href="{{ route('stats') }}"        class="nav-link">Stats</a>
             <a href="{{ route('how-it-works') }}" class="nav-link">How It Works</a>
             <a href="{{ route('prizes') }}"       class="nav-link">Prizes</a>
         </div>
@@ -64,6 +65,8 @@
                                 ['route' => 'squad.builder',    'icon' => 'sports_soccer', 'label' => 'Squad Builder'],
                                 ['route' => 'mini-leagues',     'icon' => 'groups',        'label' => 'Mini Leagues'],
                                 ['route' => 'predictions.index','icon' => 'query_stats',   'label' => 'Predictions'],
+                                ['route' => 'my-stats',         'icon' => 'insights',      'label' => 'My Stats'],
+                                ['route' => 'profile.edit',     'icon' => 'manage_accounts','label' => 'Edit Profile'],
                             ] as $item)
                             <a href="{{ route($item['route']) }}"
                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-mono font-semibold
@@ -172,6 +175,11 @@
             <span class="material-symbols-outlined text-[18px]">leaderboard</span>
             Leaderboard
         </a>
+        <a href="{{ route('stats') }}"
+           class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+            <span class="material-symbols-outlined text-[18px]">query_stats</span>
+            Stats
+        </a>
         <a href="{{ route('how-it-works') }}"
            class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
             <span class="material-symbols-outlined text-[18px]">help_outline</span>
@@ -210,6 +218,16 @@
            class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
             <span class="material-symbols-outlined text-[18px]">query_stats</span>
             Predictions
+        </a>
+        <a href="{{ route('my-stats') }}"
+           class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+            <span class="material-symbols-outlined text-[18px]">insights</span>
+            My Stats
+        </a>
+        <a href="{{ route('profile.edit') }}"
+           class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+            <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
+            Edit Profile
         </a>
         @endauth
     </nav>

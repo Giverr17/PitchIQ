@@ -81,6 +81,7 @@ Route::get('/events', function () {
     return view('events', compact('featured', 'featuredNextFixture', 'eventCards'));
 })->name('events');
 Volt::route('/leaderboard', 'leaderboard')->name('leaderboard');
+Volt::route('/stats', 'stats.index')->name('stats');
 Route::get('/how-it-works', fn() => view('how-it-works'))->name('how-it-works');
 Route::get('/features', fn() => view('features'))->name('features');
 Route::get('/prizes', fn() => view('prizes'))->name('prizes');
@@ -108,6 +109,10 @@ Route::get('/campus-ads/{ad}/click', function (\App\Models\CampusAd $ad) {
 // ─── Authenticated user area ───────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Volt::route('/dashboard', 'dashboard')->name('dashboard');
+    // Edit profile (name, phone, faculty, password)
+    Volt::route('/profile', 'profile.edit')->name('profile.edit');
+    // Personal performance summary
+    Volt::route('/my-stats', 'my-stats')->name('my-stats');
     // Squad builder (static blade page)
     Volt::route('/squad/builder', 'squad.builder')->name('squad.builder');
     Volt::route('/mini-leagues', 'mini-league')->name('mini-leagues');
@@ -136,3 +141,4 @@ Volt::route('/admin/token-costs', 'admin.token-costs.index')->middleware(['auth'
 Volt::route('/admin/settings', 'admin.settings.index')->middleware(['auth', 'admin'])->name('admin.settings');
 Volt::route('/admin/campus-ads', 'admin.campus-ads.index')->middleware(['auth', 'admin'])->name('admin.campus-ads');
 Volt::route('/admin/payouts', 'admin.payouts.index')->middleware(['auth', 'admin'])->name('admin.payouts');
+Volt::route('/admin/users', 'admin.users.index')->middleware(['auth', 'admin'])->name('admin.users');

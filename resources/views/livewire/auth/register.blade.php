@@ -18,12 +18,19 @@ new #[Layout('layouts.app')] class extends Component {
     public string $ref = '';          // referral code from ?ref=
     public ?string $referrerName = null;  // shown in the UI if code is valid
 
-    protected array $rules = [
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-        'phone' => ['nullable', 'string', 'max:20'],
-        'faculty' => ['nullable', 'string', 'max:100'],
-        'password' => ['required', 'string', 'min:8', 'confirmed'],
+    protected function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone' => ['nullable', 'string', 'regex:' . User::PHONE_REGEX],
+            'faculty' => ['nullable', 'string', 'max:100'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ];
+    }
+
+    protected array $messages = [
+        'phone.regex' => 'Enter a valid Nigerian phone number, e.g. 08031234567.',
     ];
 
     public function mount(): void

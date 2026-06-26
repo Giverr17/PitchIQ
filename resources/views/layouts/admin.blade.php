@@ -40,6 +40,8 @@
         'admin.token-costs' => 'Token Costs',
         'admin.settings'    => 'Settings',
         'admin.campus-ads'  => 'Campus Ads',
+        'admin.payouts'     => 'Payouts',
+        'admin.users'       => 'Users',
         default             => 'Admin Panel',
     };
 
@@ -55,6 +57,8 @@
         ['route' => 'admin.settings',    'path' => '/admin/settings',     'icon' => 'tune',           'label' => 'Settings'],
         ['route' => 'admin.campus-ads', 'path' => '/admin/campus-ads', 'icon' => 'storefront', 'label' => 'Campus Ads'],
         ['route' => 'admin.payouts', 'path' => '/admin/payouts', 'icon' => 'redeem', 'label' => 'Payouts'],
+        ['route' => 'admin.users',   'path' => '/admin/users',   'icon' => 'manage_accounts', 'label' => 'Users'],
+        ['route' => 'stats',         'path' => '/stats',         'icon' => 'query_stats', 'label' => 'Stats'],
     ];
 @endphp
 

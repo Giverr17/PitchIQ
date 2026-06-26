@@ -21,6 +21,14 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * Nigerian mobile number format accepted across the app (registration,
+     * profile, admin). Matches what AirtimeService::detectNetwork() can read:
+     * 0XXXXXXXXXX, +234XXXXXXXXXX, or 234XXXXXXXXXX (next digit 7/8/9).
+     * Payout-critical — keep this the single source of truth.
+     */
+    const PHONE_REGEX = '/^(?:\+?234|0)[789]\d{9}$/';
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
