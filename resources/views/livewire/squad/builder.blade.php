@@ -45,18 +45,34 @@ new #[Layout('layouts.app')] class extends Component {
     // Formation sets per squad size. A const (not a public prop) so this static
     // config is NOT serialized into every Livewire request/response payload.
     private const FORMATIONS_BY_SIZE = [
+        // 11-a-side: outfield DEF + MID + FWD must total 10 (GK is always the 11th).
+        // Ordered most-defensive → most-attacking.
         11 => [
+            '6-3-1' => ['DEF' => 6, 'MID' => 3, 'FWD' => 1],
+            '5-4-1' => ['DEF' => 5, 'MID' => 4, 'FWD' => 1],
+            '5-3-2' => ['DEF' => 5, 'MID' => 3, 'FWD' => 2],
+            '5-2-3' => ['DEF' => 5, 'MID' => 2, 'FWD' => 3],
+            '4-6-0' => ['DEF' => 4, 'MID' => 6, 'FWD' => 0],
+            '4-5-1' => ['DEF' => 4, 'MID' => 5, 'FWD' => 1],
             '4-4-2' => ['DEF' => 4, 'MID' => 4, 'FWD' => 2],
             '4-3-3' => ['DEF' => 4, 'MID' => 3, 'FWD' => 3],
+            '4-2-4' => ['DEF' => 4, 'MID' => 2, 'FWD' => 4],
+            '3-6-1' => ['DEF' => 3, 'MID' => 6, 'FWD' => 1],
             '3-5-2' => ['DEF' => 3, 'MID' => 5, 'FWD' => 2],
             '3-4-3' => ['DEF' => 3, 'MID' => 4, 'FWD' => 3],
-            '5-3-2' => ['DEF' => 5, 'MID' => 3, 'FWD' => 2],
+            '3-3-4' => ['DEF' => 3, 'MID' => 3, 'FWD' => 4],
         ],
+        // 5-a-side: outfield must total 4 (GK is the 5th). At least one defender.
         5 => [
-            '1-2-1' => ['DEF' => 1, 'MID' => 2, 'FWD' => 1],
-            '2-1-1' => ['DEF' => 2, 'MID' => 1, 'FWD' => 1],
-            '1-1-2' => ['DEF' => 1, 'MID' => 1, 'FWD' => 2],
+            '3-1-0' => ['DEF' => 3, 'MID' => 1, 'FWD' => 0],
+            '3-0-1' => ['DEF' => 3, 'MID' => 0, 'FWD' => 1],
             '2-2-0' => ['DEF' => 2, 'MID' => 2, 'FWD' => 0],
+            '2-1-1' => ['DEF' => 2, 'MID' => 1, 'FWD' => 1],
+            '2-0-2' => ['DEF' => 2, 'MID' => 0, 'FWD' => 2],
+            '1-3-0' => ['DEF' => 1, 'MID' => 3, 'FWD' => 0],
+            '1-2-1' => ['DEF' => 1, 'MID' => 2, 'FWD' => 1],
+            '1-1-2' => ['DEF' => 1, 'MID' => 1, 'FWD' => 2],
+            '1-0-3' => ['DEF' => 1, 'MID' => 0, 'FWD' => 3],
         ],
     ];
 
