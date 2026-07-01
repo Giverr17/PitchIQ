@@ -41,12 +41,10 @@ return [
         'password' => env('VTU_PASSWORD'),
     ],
     'ai' => [
-        'model' => env('AI_MODEL', 'gemini-3.5-flash'),
-        'fallbacks' => [
-            'gemini-2.0-flash',
-            'gemini-2.5-flash-lite',
-            'gemini-3-flash-preview',
-        ],
+        // Primary provider: Gemini (Prism resolves the key from config/prism.php → GEMINI_API_KEY)
+        'model' => env('AI_MODEL', 'gemini-2.5-flash-lite'),
+        // Fallback provider: Groq (used when Gemini rate-limits or a transport error persists → GROQ_API_KEY)
+        'fallback_model' => env('AI_FALLBACK_MODEL', 'llama-3.3-70b-versatile'),
     ],
 
 ];

@@ -61,60 +61,87 @@ class AiService
     }
 
     /**
-     * Send a prompt to Gemini and return the raw text — with a bounded per-attempt
-     * timeout and automatic retries on TRANSIENT failures (provider overloaded,
-     * 5xx, dropped/SSL connection). Those are by far the most common failures on
-     * the free tier, so a couple of quiet retries turn most of them into a real
-     * answer instead of a user-facing "AI is overloaded" error. Non-transient
-     * errors (rate limit, bad request) throw immediately for classifyError().
+     * Single entry point for every AI text call — the ONLY place Prism is invoked.
+     *
+     * Provider fallback chain:
+     *   1. PRIMARY  = Gemini (config: services.ai.model). Retried a couple of
+     *      times on TRANSIENT blips (overloaded / 5xx / dropped connection) with
+     *      exponential backoff + jitter so we don't hammer a struggling endpoint.
+     *   2. FALLBACK = Groq (config: services.ai.fallback_model). If Gemini
+     *      rate-limits us — or a provider/transport error survives the retries —
+     *      we fail over ONCE to Groq so the user still gets an answer.
+     *
+     * Any OTHER exception (bad request, auth, validation) bubbles up unchanged
+     * for classifyError() to translate. API keys are resolved by Prism from
+     * config/prism.php (GEMINI_API_KEY / GROQ_API_KEY).
+     *
+     * Returns raw model text — callers still strip ```json fences and validate
+     * the output against real DB IDs / enums themselves.
      */
-   private function runPrompt(string $prompt): string
-{
-    $models = array_merge(
-        [config('services.ai.model', 'gemini-2.5-flash')],
-        config('services.ai.fallbacks', [])
-    );
+    private function runPrompt(string $prompt): string
+    {
+        $primaryModel  = config('services.ai.model', 'gemini-2.5-flash-lite');
+        $fallbackModel = config('services.ai.fallback_model', 'llama-3.3-70b-versatile');
 
-    $lastError = null;
-
-    foreach ($models as $model) {
+        // ── PRIMARY: Gemini, with bounded exponential backoff + jitter ──────────
         $maxAttempts = 3;
-
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                $response = Prism::text()
-                    ->using(Provider::Gemini, $model)
-                    ->withPrompt($prompt)
-                    ->withClientOptions(['timeout' => 8, 'connect_timeout' => 5])
-                    ->asText();
-
-                return trim($response->text);
+                return $this->callPrism(Provider::Gemini, $primaryModel, $prompt);
             } catch (\Throwable $e) {
-                $lastError = $e;
+                $rateLimited = $e instanceof PrismRateLimitedException;
 
-                $isRateLimit = $e instanceof PrismRateLimitedException
-                    || Str::contains(strtolower($e->getMessage()), ['rate', 'quota', 'exhausted']);
-
-                // If THIS model is rate-limited, stop retrying it and move to the next model
-                if ($isRateLimit) {
-                    break;   // break the attempt loop → try next model
-                }
-
-                // Other transient errors: retry the same model
-                if ($attempt < $maxAttempts && $this->isTransient($e)) {
-                    usleep(500000 * $attempt);
+                // Retry Gemini only for transient, NON-rate-limit blips, backing
+                // off between tries (250ms, 500ms …) plus up to 250ms of jitter.
+                if ($attempt < $maxAttempts && !$rateLimited && $this->isTransient($e)) {
+                    usleep((int) (250_000 * (2 ** ($attempt - 1))) + random_int(0, 250_000));
                     continue;
                 }
 
-                // Non-transient, non-rate-limit: give up entirely
+                // Rate-limited, or a provider/transport failure that outlived the
+                // retries → stop hammering Gemini and fail over to Groq (below).
+                if ($rateLimited || $this->isTransient($e)) {
+                    break;
+                }
+
+                // Anything else is a real error — let it bubble up unchanged.
                 throw $e;
             }
         }
-        // fell out of the attempt loop due to rate limit → loop continues to next model
+
+        // ── FALLBACK: Groq, a single attempt ────────────────────────────────────
+        Log::warning('AiService failover: Gemini → Groq', [
+            'method'         => $this->callingMethod(),   // which AI feature triggered it
+            'primary_model'  => $primaryModel,
+            'fallback_model' => $fallbackModel,
+        ]);
+
+        return $this->callPrism(Provider::Groq, $fallbackModel, $prompt);
     }
 
-    throw $lastError;
-}
+    /** One Prism text call against a specific provider + model. */
+    private function callPrism(Provider $provider, string $model, string $prompt): string
+    {
+        $response = Prism::text()
+            ->using($provider, $model)
+            ->withPrompt($prompt)
+            ->withClientOptions(['timeout' => 8, 'connect_timeout' => 5])
+            ->asText();
+
+        return trim($response->text);
+    }
+
+    /** Name of the public AiService method that triggered this call — for the failover log. */
+    private function callingMethod(): string
+    {
+        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 12) as $frame) {
+            if (($frame['class'] ?? null) === static::class
+                && !in_array($frame['function'], ['runPrompt', 'callPrism', 'callingMethod'], true)) {
+                return $frame['function'];
+            }
+        }
+        return 'unknown';
+    }
 
     /** Failures worth retrying — provider busy, server blip, or a dropped connection. */
     private function isTransient(\Throwable $e): bool

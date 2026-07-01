@@ -38,7 +38,7 @@ new #[Layout('layouts.app')] class extends Component {
     // ─── Data ──────────────────────────────────────────────────────────────────
     public $fixtures;
     public $tournaments;
-    public $allPlayers;
+    public array $tournamentPlayers = [];   // [tournament_id => [ ['id','name'], ... ]]
     public array $myPicks = [];
     public array $mySquads = [];
 
@@ -75,8 +75,17 @@ new #[Layout('layouts.app')] class extends Component {
         // Load active/upcoming tournaments for tournament-scope predictions
         $this->tournaments = Tournament::whereIn('status', [\App\Enums\TournamentStatus::Upcoming, \App\Enums\TournamentStatus::Active])->get();
 
-        // All players for dropdowns
-        $this->allPlayers = Player::orderBy('name')->get();
+        // Players for the tournament-prediction dropdowns, scoped to each
+        // tournament's OWN teams (player → team → tournament) so you only pick
+        // from players actually competing in that tournament.
+        $this->tournamentPlayers = Player::query()
+            ->join('teams', 'players.team_id', '=', 'teams.id')
+            ->whereIn('teams.tournament_id', $this->tournaments->pluck('id'))
+            ->orderBy('players.name')
+            ->get(['players.id', 'players.name', 'teams.tournament_id'])
+            ->groupBy('tournament_id')
+            ->map(fn($group) => $group->map(fn($p) => ['id' => $p->id, 'name' => $p->name])->values()->toArray())
+            ->toArray();
 
         // Initialize a full-key slot for every tournament
         foreach ($this->tournaments as $tournament) {
@@ -971,8 +980,8 @@ new #[Layout('layouts.app')] class extends Component {
                                                    {{ $locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer' }}
                                                    transition-colors">
                             <option value="">— Pick a player —</option>
-                            @foreach($allPlayers as $player)
-                                <option value="{{ $player->id }}">{{ $player->name }}</option>
+                            @foreach($tournamentPlayers[$tid] ?? [] as $player)
+                                <option value="{{ $player['id'] }}">{{ $player['name'] }}</option>
                             @endforeach
                         </select>
                         @if($tpick['top_scorer'] ?? null)
@@ -996,8 +1005,8 @@ new #[Layout('layouts.app')] class extends Component {
                                                    {{ $locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer' }}
                                                    transition-colors">
                             <option value="">— Pick a player —</option>
-                            @foreach($allPlayers as $player)
-                                <option value="{{ $player->id }}">{{ $player->name }}</option>
+                            @foreach($tournamentPlayers[$tid] ?? [] as $player)
+                                <option value="{{ $player['id'] }}">{{ $player['name'] }}</option>
                             @endforeach
                         </select>
                         @if($tpick['most_assists'] ?? null)

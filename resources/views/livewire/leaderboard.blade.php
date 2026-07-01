@@ -83,44 +83,50 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
         // and the computed methods below re-query fresh data.
     }
 
-    // ─── Fantasy standings ───────────────────────────────────────────────
+    // ─── Overall standings: fantasy + verified-prediction points combined ─────
+    // Mirrors the dashboard/My-Stats calculation so a user's rank is consistent
+    // everywhere: squad-builder points and prediction points accumulate as ONE total.
     public function fantasyStandings(): array
     {
         if (!$this->tournamentId)
             return [];
 
-        // Overall: sum each user's total_points across all their matchday teams
-        if ($this->selectedMatchday === null) {
-            return FantasyTeam::join('users', 'fantasy_teams.user_id', '=', 'users.id')
-                ->where('fantasy_teams.tournament_id', $this->tournamentId)
-                ->groupBy('fantasy_teams.user_id', 'users.name', 'users.faculty')
-                ->select(
-                    'users.name as manager',
-                    'users.faculty',
-                    DB::raw('SUM(fantasy_teams.total_points) as total_points')
-                )
-                ->orderByDesc('total_points')
-                ->get()
-                ->map(fn($row) => [
-                    'manager' => $row->manager,
-                    'faculty' => $row->faculty ?? '—',
-                    'total_points' => (int) $row->total_points,
-                    'team_name' => 'Overall',
-                ])->toArray();
-        }
+        $tid = $this->tournamentId;
+        $md  = $this->selectedMatchday;   // null = whole season
 
-        // Per-matchday: one team per user for this matchday (join through fixture)
-        return FantasyTeam::with('user')
-            ->where('tournament_id', $this->tournamentId)
-            ->whereHas('fixture', fn($q) => $q->where('matchday', $this->selectedMatchday))
-            ->orderByDesc('total_points')
-            ->get()
-            ->map(fn($t) => [
-                'team_name' => $t->team_name,
-                'manager' => $t->user->name,
-                'faculty' => $t->user->faculty ?? '—',
-                'total_points' => $t->total_points,
-            ])->toArray();
+        // Fantasy points per user (optionally scoped to a matchday via its fixture)
+        $fantasy = FantasyTeam::where('tournament_id', $tid)
+            ->when($md !== null, fn($q) => $q->whereHas('fixture', fn($f) => $f->where('matchday', $md)))
+            ->selectRaw('user_id, SUM(total_points) as pts')
+            ->groupBy('user_id')
+            ->pluck('pts', 'user_id');
+
+        // Verified prediction points per user (same tournament + matchday scope)
+        $preds = Prediction::whereHas(
+                'fixture',
+                fn($f) => $f->where('tournament_id', $tid)->when($md !== null, fn($q) => $q->where('matchday', $md))
+            )
+            ->whereNotNull('verified_at')
+            ->selectRaw('user_id, SUM(points_earned) as pts')
+            ->groupBy('user_id')
+            ->pluck('pts', 'user_id');
+
+        $uids = $fantasy->keys()->merge($preds->keys())->unique();
+        if ($uids->isEmpty())
+            return [];
+
+        $users = User::whereIn('id', $uids)->get(['id', 'name', 'faculty'])->keyBy('id');
+
+        return $uids->map(fn($uid) => [
+                'manager'           => $users[$uid]->name ?? '—',
+                'faculty'           => $users[$uid]->faculty ?? '—',
+                'fantasy_points'    => (int) ($fantasy[$uid] ?? 0),
+                'prediction_points' => (int) ($preds[$uid] ?? 0),
+                'total_points'      => (int) ($fantasy[$uid] ?? 0) + (int) ($preds[$uid] ?? 0),
+            ])
+            ->sortByDesc('total_points')
+            ->values()
+            ->toArray();
     }
 
     // ─── Prediction standings ────────────────────────────────────────────
@@ -144,23 +150,39 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
             ])->toArray();
     }
 
-    // ─── Faculty standings (sum of fantasy points per faculty) ───────────
+    // ─── Faculty standings: combined fantasy + prediction points per faculty ─
     public function facultyStandings(): array
     {
         if (!$this->tournamentId)
             return [];
 
-        return FantasyTeam::join('users', 'fantasy_teams.user_id', '=', 'users.id')
-            ->where('fantasy_teams.tournament_id', $this->tournamentId)
+        $tid = $this->tournamentId;
+
+        $fantasy = FantasyTeam::join('users', 'fantasy_teams.user_id', '=', 'users.id')
+            ->where('fantasy_teams.tournament_id', $tid)
             ->whereNotNull('users.faculty')
             ->groupBy('users.faculty')
-            ->select('users.faculty', DB::raw('SUM(fantasy_teams.total_points) as total'))
-            ->orderByDesc('total')
-            ->get()
-            ->map(fn($row) => [
-                'faculty' => $row->faculty,
-                'total' => (int) $row->total,
-            ])->toArray();
+            ->selectRaw('users.faculty as faculty, SUM(fantasy_teams.total_points) as pts')
+            ->pluck('pts', 'faculty');
+
+        $preds = Prediction::join('users', 'predictions.user_id', '=', 'users.id')
+            ->join('fixtures', 'predictions.fixture_id', '=', 'fixtures.id')
+            ->where('fixtures.tournament_id', $tid)
+            ->whereNotNull('predictions.verified_at')
+            ->whereNotNull('users.faculty')
+            ->groupBy('users.faculty')
+            ->selectRaw('users.faculty as faculty, SUM(predictions.points_earned) as pts')
+            ->pluck('pts', 'faculty');
+
+        $faculties = $fantasy->keys()->merge($preds->keys())->unique();
+
+        return $faculties->map(fn($f) => [
+                'faculty' => $f,
+                'total'   => (int) ($fantasy[$f] ?? 0) + (int) ($preds[$f] ?? 0),
+            ])
+            ->sortByDesc('total')
+            ->values()
+            ->toArray();
     }
 } ?>
 
@@ -200,7 +222,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
     {{-- Tabs --}}
     <div
         class="flex gap-2 justify-center p-1 rounded-xl bg-white/[0.03] border border-outline-variant/15 w-fit mx-auto">
-        @foreach(['fantasy' => 'Fantasy', 'predictions' => 'Predictions', 'faculty' => 'Faculty'] as $val => $label)
+        @foreach(['fantasy' => 'Overall', 'predictions' => 'Predictions', 'faculty' => 'Faculty'] as $val => $label)
             <button wire:click="$set('tab', '{{ $val }}')" class="px-5 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider transition-all
                                        {{ $tab === $val ? 'text-black' : 'text-on-surface-variant hover:text-white' }}"
                 style="{{ $tab === $val ? 'background:#00E676;' : '' }}">
@@ -242,7 +264,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                         <tr class="border-b border-outline-variant/15 font-mono text-xs uppercase tracking-wider text-on-surface-variant/60"
                             style="background: rgba(255,255,255,0.02);">
                             <th class="py-3.5 px-5 w-16">#</th>
-                            <th class="py-3.5 px-5">Manager &amp; Team</th>
+                            <th class="py-3.5 px-5">Manager</th>
                             <th class="py-3.5 px-5">Faculty</th>
                             <th class="py-3.5 px-5 text-right">Points</th>
                         </tr>
@@ -254,7 +276,9 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                                     style="{{ $i < 3 ? 'color:#00E676;' : '' }}">{{ $i + 1 }}</td>
                                 <td class="py-4 px-5">
                                     <div class="font-bold text-white">{{ $row['manager'] }}</div>
-                                    <div class="text-xs text-on-surface-variant/50">{{ $row['team_name'] }}</div>
+                                    <div class="text-xs text-on-surface-variant/50 font-mono">
+                                        Fantasy {{ $row['fantasy_points'] }} · Predictions {{ $row['prediction_points'] }}
+                                    </div>
                                 </td>
                                 <td class="py-4 px-5 text-on-surface-variant/70 font-mono text-xs">{{ $row['faculty'] }}</td>
                                 <td class="py-4 px-5 text-right font-mono font-bold" style="color:#00E676;">
