@@ -1,4 +1,8 @@
 {
+  "_typeof-B5XbjTb1.js": {
+    "file": "assets/typeof-B5XbjTb1.js",
+    "name": "typeof"
+  },
   "node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-cyrillic-ext-wght-normal.woff2": {
     "file": "assets/jetbrains-mono-cyrillic-ext-wght-normal-EocZY2iu.woff2",
     "src": "node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-cyrillic-ext-wght-normal.woff2"
@@ -59,12 +63,64 @@
     "file": "assets/plus-jakarta-sans-vietnamese-wght-normal-qRpaaN48.woff2",
     "src": "node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-vietnamese-wght-normal.woff2"
   },
+  "node_modules/canvg/lib/index.es.js": {
+    "file": "assets/index.es-Db-Wzjqx.js",
+    "name": "index.es",
+    "src": "node_modules/canvg/lib/index.es.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js",
+      "_typeof-B5XbjTb1.js"
+    ]
+  },
+  "node_modules/dompurify/dist/purify.es.mjs": {
+    "file": "assets/purify.es-Bu4Grnl0.js",
+    "name": "purify.es",
+    "src": "node_modules/dompurify/dist/purify.es.mjs",
+    "isDynamicEntry": true
+  },
+  "node_modules/html2canvas-pro/dist/html2canvas-pro.esm.js": {
+    "file": "assets/html2canvas-pro.esm-0ZKmJkt-.js",
+    "name": "html2canvas-pro.esm",
+    "src": "node_modules/html2canvas-pro/dist/html2canvas-pro.esm.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/html2canvas/dist/html2canvas.js": {
+    "file": "assets/html2canvas-BJ_iIc3K.js",
+    "name": "html2canvas",
+    "src": "node_modules/html2canvas/dist/html2canvas.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "node_modules/jspdf-autotable/dist/jspdf.plugin.autotable.mjs": {
+    "file": "assets/jspdf.plugin.autotable-GudEMuKW.js",
+    "name": "jspdf.plugin.autotable",
+    "src": "node_modules/jspdf-autotable/dist/jspdf.plugin.autotable.mjs",
+    "isDynamicEntry": true
+  },
+  "node_modules/jspdf/dist/jspdf.es.min.js": {
+    "file": "assets/jspdf.es.min-LEhbM6b5.js",
+    "name": "jspdf.es.min",
+    "src": "node_modules/jspdf/dist/jspdf.es.min.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js",
+      "_typeof-B5XbjTb1.js"
+    ],
+    "dynamicImports": [
+      "node_modules/html2canvas/dist/html2canvas.js",
+      "node_modules/dompurify/dist/purify.es.mjs",
+      "node_modules/canvg/lib/index.es.js"
+    ]
+  },
   "node_modules/material-symbols/material-symbols-outlined.woff2": {
     "file": "assets/material-symbols-outlined-DachT0Wf.woff2",
     "src": "node_modules/material-symbols/material-symbols-outlined.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-D5pZuLSJ.css",
+    "file": "assets/app-CIyPQGJg.css",
     "name": "app",
     "names": [
       "app.css"
@@ -91,9 +147,14 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-DgU_uuL2.js",
+    "file": "assets/app-BVljgrr8.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/jspdf/dist/jspdf.es.min.js",
+      "node_modules/jspdf-autotable/dist/jspdf.plugin.autotable.mjs",
+      "node_modules/html2canvas-pro/dist/html2canvas-pro.esm.js"
+    ]
   }
 }

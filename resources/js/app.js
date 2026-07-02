@@ -20,51 +20,85 @@
 import Sortable from 'sortablejs';
 window.Sortable = Sortable;
 
-// ─── Export a DOM node to a downloadable PNG (self-hosted, works offline) ─────
-// Uses html-to-image (SVG foreignObject → the browser renders it), so Tailwind v4
-// oklch colours, gradients and CSS custom properties capture correctly — unlike
-// html2canvas which re-parses CSS and trips on modern colour functions.
-import { toPng } from 'html-to-image';
+// ─── Table → PDF (self-hosted, works offline) ────────────────────────────────
+// Builds a real vector PDF from the table's TEXT (jsPDF + autotable). No DOM
+// rasterization → unaffected by mobile canvas limits, oklch/color-mix or CSP,
+// and long tables paginate automatically. This is the reliable cross-device path.
+// jsPDF is heavy, so it's loaded ON DEMAND (dynamic import) — only when the user
+// actually clicks Download — keeping every page's initial bundle small.
+window.exportTableAsPdf = async function (tableSelector, filename = 'pitchiq.pdf', title = '') {
+    const table = document.querySelector(tableSelector);
+    if (!table) { window.showAppError?.('Nothing to export yet.'); return; }
+    try {
+        const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+            import('jspdf'),
+            import('jspdf-autotable'),
+        ]);
 
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+        let y = 44;
+
+        if (title) {
+            doc.setFontSize(15);
+            doc.setTextColor(17, 17, 17);
+            doc.text(title, 40, y);
+            y += 12;
+        }
+        doc.setFontSize(9);
+        doc.setTextColor(130, 130, 130);
+        doc.text(new Date().toLocaleString(), 40, y);
+
+        autoTable(doc, {
+            html: table,
+            startY: y + 12,
+            styles: { fontSize: 9, cellPadding: 5, overflow: 'linebreak' },
+            headStyles: { fillColor: [0, 230, 118], textColor: [0, 0, 0], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [245, 247, 245] },
+            theme: 'striped',
+            margin: { top: 40, right: 40, bottom: 40, left: 40 },
+        });
+
+        doc.save(filename);
+    } catch (e) {
+        console.error('PDF export failed:', e);
+        window.showAppError?.('Could not generate the PDF. Please try again.');
+    }
+};
+
+// ─── Element → downloadable PNG (html2canvas-pro, lazy-loaded) ───────────────
+// html2canvas-pro rasterizes the DOM directly (no SVG `data:` <img> step), so it
+// works on older mobile where html-to-image's SVG→<img> step failed. The "pro"
+// fork natively understands Tailwind v4 oklch() / color-mix(), so NO colour hacks
+// are needed. Loaded on demand so it never bloats the initial page bundle.
 window.exportElementAsImage = async function (elId, filename = 'pitchiq.png') {
     const node = document.getElementById(elId);
     if (!node) return;
-
-    // Mobile browsers (esp. older Android) cap how large a canvas/SVG they can
-    // rasterize. Bounding the longest side to ~2000px keeps big leaderboards
-    // within that limit — otherwise the generated SVG fails to load as an <img>.
-    const rect = node.getBoundingClientRect();
-    const longest = Math.max(rect.width, rect.height, 1);
-    const pixelRatio = Math.max(1, Math.min(2, 2000 / longest));
-
-    const opts = {
-        backgroundColor: '#0d110f', // solid dark bg so the PNG isn't transparent
-        pixelRatio,                 // capped for mobile; up to 2× for small tables
-        cacheBust: true,
-    };
-
     try {
-        let dataUrl;
-        try {
-            // First try WITH web fonts embedded (keeps the brand fonts).
-            dataUrl = await toPng(node, opts);
-        } catch (fontErr) {
-            // On production, third-party ad scripts (PropellerAds) inject
-            // CROSS-ORIGIN stylesheets. html-to-image's font-embedding step reads
-            // every stylesheet's cssRules and the browser throws a SecurityError on
-            // those, aborting the capture. Retry with skipFonts so the image still
-            // generates — text just falls back to system fonts.
-            console.warn('Image export: retrying without font embedding', fontErr);
-            dataUrl = await toPng(node, { ...opts, skipFonts: true });
-        }
+        const { default: html2canvas } = await import('html2canvas-pro');
 
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = dataUrl;
-        link.click();
+        // Bound the raster so a big leaderboard stays within mobile canvas limits.
+        const longest = Math.max(node.offsetWidth, node.offsetHeight, 1);
+        const scale = Math.max(1, Math.min(2, 2000 / longest));
+
+        const canvas = await html2canvas(node, {
+            backgroundColor: '#0d110f', // solid dark bg (no transparency)
+            scale,
+            useCORS: true,
+            logging: false,
+        });
+
+        // toBlob is gentler on mobile memory than a giant data: URL.
+        canvas.toBlob((blob) => {
+            if (!blob) { window.showAppError?.('Could not generate the image.'); return; }
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = url;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }, 'image/png');
     } catch (e) {
         console.error('Image export failed:', e);
-        // Surface the real reason (name + message) so production issues are diagnosable.
         const reason = e && (e.name || e.message) ? ` (${e.name || ''}: ${e.message || ''})` : '';
         window.showAppError?.('Could not generate the image' + reason);
     }

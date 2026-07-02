@@ -235,7 +235,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
         <button type="button"
             onclick="window.exportElementAsImage('lb-capture', 'pitchiq-leaderboard.png')"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-on-surface-variant border border-outline-variant/20 hover:text-[#00E676] hover:border-[#00E676]/40 transition-all cursor-pointer">
-            <span class="material-symbols-outlined text-[16px]">download</span>
+            <span class="material-symbols-outlined text-[16px]">image</span>
             Download as image
         </button>
     </div>
