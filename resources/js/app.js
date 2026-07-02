@@ -57,7 +57,9 @@ window.exportElementAsImage = async function (elId, filename = 'pitchiq.png') {
         link.click();
     } catch (e) {
         console.error('Image export failed:', e);
-        window.showAppError?.('Could not generate the image. Please try again.');
+        // Surface the real reason (name + message) so production issues are diagnosable.
+        const reason = e && (e.name || e.message) ? ` (${e.name || ''}: ${e.message || ''})` : '';
+        window.showAppError?.('Could not generate the image' + reason);
     }
 };
 
