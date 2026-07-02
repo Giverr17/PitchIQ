@@ -30,9 +30,16 @@ window.exportElementAsImage = async function (elId, filename = 'pitchiq.png') {
     const node = document.getElementById(elId);
     if (!node) return;
 
+    // Mobile browsers (esp. older Android) cap how large a canvas/SVG they can
+    // rasterize. Bounding the longest side to ~2000px keeps big leaderboards
+    // within that limit — otherwise the generated SVG fails to load as an <img>.
+    const rect = node.getBoundingClientRect();
+    const longest = Math.max(rect.width, rect.height, 1);
+    const pixelRatio = Math.max(1, Math.min(2, 2000 / longest));
+
     const opts = {
         backgroundColor: '#0d110f', // solid dark bg so the PNG isn't transparent
-        pixelRatio: 2,              // crisp on retina / when zoomed
+        pixelRatio,                 // capped for mobile; up to 2× for small tables
         cacheBust: true,
     };
 
