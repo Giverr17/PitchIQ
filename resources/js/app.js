@@ -29,12 +29,28 @@ import { toPng } from 'html-to-image';
 window.exportElementAsImage = async function (elId, filename = 'pitchiq.png') {
     const node = document.getElementById(elId);
     if (!node) return;
+
+    const opts = {
+        backgroundColor: '#0d110f', // solid dark bg so the PNG isn't transparent
+        pixelRatio: 2,              // crisp on retina / when zoomed
+        cacheBust: true,
+    };
+
     try {
-        const dataUrl = await toPng(node, {
-            backgroundColor: '#0d110f', // solid dark bg so the PNG isn't transparent
-            pixelRatio: 2,              // crisp on retina / when zoomed
-            cacheBust: true,
-        });
+        let dataUrl;
+        try {
+            // First try WITH web fonts embedded (keeps the brand fonts).
+            dataUrl = await toPng(node, opts);
+        } catch (fontErr) {
+            // On production, third-party ad scripts (PropellerAds) inject
+            // CROSS-ORIGIN stylesheets. html-to-image's font-embedding step reads
+            // every stylesheet's cssRules and the browser throws a SecurityError on
+            // those, aborting the capture. Retry with skipFonts so the image still
+            // generates — text just falls back to system fonts.
+            console.warn('Image export: retrying without font embedding', fontErr);
+            dataUrl = await toPng(node, { ...opts, skipFonts: true });
+        }
+
         const link = document.createElement('a');
         link.download = filename;
         link.href = dataUrl;

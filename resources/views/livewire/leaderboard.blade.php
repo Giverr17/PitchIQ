@@ -206,7 +206,6 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                 standings</span>
         </div>
     </div>
-    <livewire:campus-ad-banner />
     {{-- Tournament selector --}}
     @if(count($tournaments) > 0)
         <div class="flex justify-center">

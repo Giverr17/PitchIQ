@@ -595,8 +595,6 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                     @endforeach
                 </div>
             </div>
-                {{-- Sponsored banner --}}
-                <livewire:campus-ad-banner />
         </div>
     </div>
 

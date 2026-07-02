@@ -56,6 +56,9 @@
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-250 md:hidden">
     </div>
 
+    {{-- Campus sponsor banner — shown at the top of every page (renders nothing when no live ad) --}}
+    <livewire:campus-ad-banner />
+
     {{-- Main Content --}}
     <main>
         @yield('content')
