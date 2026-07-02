@@ -3,6 +3,8 @@
 use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Lazy;
+use Livewire\Attributes\Computed;
+use Livewire\WithPagination;
 use App\Models\Fixture;
 use App\Models\FantasyTeam;
 use App\Models\Prediction;
@@ -11,9 +13,10 @@ use Illuminate\Support\Facades\Auth;
 
 new #[Layout('layouts.app'), Lazy] class extends Component {
 
+    use WithPagination;
+
     public int $userTokens = 0;
     public int $totalPoints = 0;
-    public $fixtures = [];
     public $activeTournament = null;
     public $fantasyTeam = null;
     public $userRank = null;
@@ -51,6 +54,21 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
         HTML;
     }
 
+    // Upcoming fixtures in the active matchday — paginated 10 per page so users can
+    // page through them. Mapped to arrays to match the existing blade's array access.
+    #[Computed]
+    public function fixtures()
+    {
+        return Fixture::with(['homeTeam', 'awayTeam', 'tournament'])
+            ->whereIn('status', ['scheduled', 'live'])
+            ->whereHas('tournament', fn($q) => $q
+                ->where('status', \App\Enums\TournamentStatus::Active)
+                ->whereColumn('fixtures.matchday', 'tournaments.active_matchday'))
+            ->orderBy('date')
+            ->paginate(10)
+            ->through(fn($f) => $f->toArray());
+    }
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -68,18 +86,6 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
         // Active tournament
         $this->activeTournament = Tournament::where('status', 'active')->latest()->first()?->toArray();
 
-        // Upcoming fixtures (next 5) — only those in the active matchday of their
-        // active tournament, so the "Predict" deep-link always resolves on the
-        // predictions page (mirrors the predictions + squad-builder filtering).
-        $this->fixtures = Fixture::with(['homeTeam', 'awayTeam', 'tournament'])
-            ->whereIn('status', ['scheduled', 'live'])
-            ->whereHas('tournament', fn($q) => $q
-                ->where('status', \App\Enums\TournamentStatus::Active)
-                ->whereColumn('fixtures.matchday', 'tournaments.active_matchday'))
-            ->orderBy('date')
-            ->limit(5)
-            ->get()
-            ->toArray();
 
         if ($this->activeTournament) {
             $this->fantasyTeam = FantasyTeam::where('user_id', $user->id)
@@ -394,7 +400,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
         {{-- Upcoming fixtures count --}}
         <div class="rounded-xl border border-outline-variant/15 p-5" style="background: rgba(13,17,15,0.8);">
             <p class="font-mono text-[10px] uppercase tracking-wider text-on-surface-variant/50 mb-2">Upcoming</p>
-            <p class="font-black text-3xl font-mono text-white">{{ count($fixtures) }}</p>
+            <p class="font-black text-3xl font-mono text-white">{{ $this->fixtures->total() }}</p>
             <p class="font-mono text-[10px] text-on-surface-variant/40 mt-1">fixtures scheduled</p>
         </div>
     </div>
@@ -412,7 +418,7 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                 </a>
             </div>
 
-            @forelse($fixtures as $fixture)
+            @forelse($this->fixtures as $fixture)
                 @php
                     $status = is_array($fixture['status']) ? $fixture['status']['value'] : $fixture['status'];
                     $isLive = $status === 'live';
@@ -466,6 +472,12 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
                     <p class="font-mono text-xs text-on-surface-variant/40">No upcoming fixtures yet.</p>
                 </div>
             @endforelse
+
+            @if($this->fixtures->hasPages())
+                <div class="pt-2">
+                    {{ $this->fixtures->links() }}
+                </div>
+            @endif
         </div>
 
         {{-- Right sidebar --}}

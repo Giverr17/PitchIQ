@@ -104,6 +104,106 @@ window.exportElementAsImage = async function (elId, filename = 'pitchiq.png') {
     }
 };
 
+// ─── Clean, paginated leaderboard image(s) ───────────────────────────────────
+// Instead of screenshotting the dark themed table (which looks like a raw
+// screenshot and gets huge/cut-off when long), we read the table's TEXT and build
+// a clean, branded, off-screen "card" (white, striped, PitchIQ header), then
+// rasterize THAT with html2canvas-pro. Long leaderboards are split into pages of
+// `perPage` rows — each downloaded as its own tidy PNG so nothing is cut off.
+function _lbEscape(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function _lbBuildCard(headCells, rows, meta) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:absolute;left:-100000px;top:0;width:760px;box-sizing:border-box;background:#ffffff;color:#0d110f;font-family:Arial,Helvetica,sans-serif;padding:32px;';
+
+    const head = document.createElement('div');
+    head.style.cssText = 'display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;border-bottom:3px solid #00E676;padding-bottom:14px;';
+    head.innerHTML =
+        '<div>' +
+          '<div style="font-size:26px;font-weight:800;letter-spacing:-0.5px;">Pitch<span style="color:#00a152;">IQ</span></div>' +
+          '<div style="font-size:14px;color:#555;margin-top:4px;">' + _lbEscape(meta.title) + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;font-size:11px;color:#888;line-height:1.5;">' +
+          (meta.pages > 1 ? 'Page ' + meta.page + ' of ' + meta.pages + '<br>' : '') +
+          _lbEscape(meta.date) +
+        '</div>';
+    wrap.appendChild(head);
+
+    const t = document.createElement('table');
+    t.style.cssText = 'width:100%;border-collapse:collapse;font-size:14px;';
+    t.innerHTML =
+        '<thead><tr>' +
+            headCells.map((h, i) => '<th style="text-align:' + (i === headCells.length - 1 ? 'right' : 'left') + ';padding:11px 12px;background:#00E676;color:#0d110f;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">' + _lbEscape(h) + '</th>').join('') +
+        '</tr></thead>' +
+        '<tbody>' +
+            rows.map((cells, r) => '<tr style="background:' + (r % 2 ? '#f4f7f4' : '#ffffff') + ';">' +
+                cells.map((c, i) => '<td style="padding:10px 12px;border-bottom:1px solid #e6e9e6;white-space:pre-line;' +
+                    (i === 0 ? 'color:#00a152;font-weight:700;width:44px;' : '') +
+                    (i === cells.length - 1 ? 'text-align:right;font-weight:700;color:#00a152;' : '') +
+                    '">' + _lbEscape(c) + '</td>').join('') +
+            '</tr>').join('') +
+        '</tbody>';
+    wrap.appendChild(t);
+
+    const foot = document.createElement('div');
+    foot.style.cssText = 'margin-top:18px;text-align:center;font-size:10px;color:#b0b0b0;';
+    foot.textContent = 'PitchIQ — Own Your Squad. Rule the Campus.';
+    wrap.appendChild(foot);
+
+    return wrap;
+}
+
+window.exportLeaderboardImages = async function (tableSelector, opts = {}) {
+    const { title = 'Leaderboard', perPage = 20, fileBase = 'pitchiq-leaderboard' } = opts;
+    const table = document.querySelector(tableSelector);
+    if (!table) { window.showAppError?.('Nothing to export yet.'); return; }
+
+    const headCells = [...table.querySelectorAll('thead th')].map((th) => th.innerText.trim());
+    const rows = [...table.querySelectorAll('tbody tr')]
+        .map((tr) => [...tr.querySelectorAll('td')].map((td) => td.innerText.trim()))
+        .filter((cells) => cells.length === headCells.length); // skip the empty-state (colspan) row
+
+    if (!rows.length) { window.showAppError?.('No rows to export yet.'); return; }
+
+    try {
+        const { default: html2canvas } = await import('html2canvas-pro');
+        const date = new Date().toLocaleDateString();
+        const pages = Math.ceil(rows.length / perPage);
+
+        for (let p = 0; p < pages; p++) {
+            const slice = rows.slice(p * perPage, (p + 1) * perPage);
+            const card = _lbBuildCard(headCells, slice, { title, page: p + 1, pages, date });
+            document.body.appendChild(card);
+            try {
+                const canvas = await html2canvas(card, { backgroundColor: '#ffffff', scale: 2, logging: false });
+                await new Promise((resolve) => canvas.toBlob((blob) => {
+                    if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = pages > 1 ? `${fileBase}-${p + 1}.png` : `${fileBase}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        setTimeout(() => URL.revokeObjectURL(url), 3000);
+                    }
+                    resolve();
+                }, 'image/png'));
+            } finally {
+                card.remove();
+            }
+            // Small gap so the browser doesn't drop rapid successive downloads.
+            if (p < pages - 1) await new Promise((r) => setTimeout(r, 700));
+        }
+    } catch (e) {
+        console.error('Leaderboard image export failed:', e);
+        const reason = e && (e.name || e.message) ? ` (${e.name || ''}: ${e.message || ''})` : '';
+        window.showAppError?.('Could not generate the image' + reason);
+    }
+};
+
 // ─── Squad Builder drag-and-drop ─────────────────────────────────────────────
 // Reinit Sortable only when the draggable item count changes (search/filter
 // added or removed rows). With wire:key on player rows, Livewire morphs them

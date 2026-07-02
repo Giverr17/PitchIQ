@@ -64,7 +64,7 @@
     "src": "node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-vietnamese-wght-normal.woff2"
   },
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-Db-Wzjqx.js",
+    "file": "assets/index.es-v5ExiZ6P.js",
     "name": "index.es",
     "src": "node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
@@ -86,7 +86,7 @@
     "isDynamicEntry": true
   },
   "node_modules/html2canvas/dist/html2canvas.js": {
-    "file": "assets/html2canvas-BJ_iIc3K.js",
+    "file": "assets/html2canvas-CPMJ6lSQ.js",
     "name": "html2canvas",
     "src": "node_modules/html2canvas/dist/html2canvas.js",
     "isDynamicEntry": true,
@@ -101,7 +101,7 @@
     "isDynamicEntry": true
   },
   "node_modules/jspdf/dist/jspdf.es.min.js": {
-    "file": "assets/jspdf.es.min-LEhbM6b5.js",
+    "file": "assets/jspdf.es.min-BfZXAEPA.js",
     "name": "jspdf.es.min",
     "src": "node_modules/jspdf/dist/jspdf.es.min.js",
     "isDynamicEntry": true,
@@ -120,7 +120,7 @@
     "src": "node_modules/material-symbols/material-symbols-outlined.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-CIyPQGJg.css",
+    "file": "assets/app-eZCiyKD_.css",
     "name": "app",
     "names": [
       "app.css"
@@ -147,7 +147,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-BVljgrr8.js",
+    "file": "assets/app-C-fRzxs9.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
