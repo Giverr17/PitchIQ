@@ -20,6 +20,7 @@
         "@fontsource-variable/jetbrains-mono": "^5.2.8",
         "@fontsource-variable/montserrat": "^5.2.8",
         "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
+        "html-to-image": "^1.11.13",
         "material-symbols": "^0.44.12",
         "sortablejs": "^1.15.7"
     }

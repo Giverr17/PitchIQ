@@ -231,6 +231,19 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
         @endforeach
     </div>
 
+    {{-- Download the current standings as an image --}}
+    <div class="flex justify-center">
+        <button type="button"
+            onclick="window.exportElementAsImage('lb-capture', 'pitchiq-leaderboard.png')"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-on-surface-variant border border-outline-variant/20 hover:text-[#00E676] hover:border-[#00E676]/40 transition-all cursor-pointer">
+            <span class="material-symbols-outlined text-[16px]">download</span>
+            Download as image
+        </button>
+    </div>
+
+    {{-- Capture region — everything inside is exported to PNG --}}
+    <div id="lb-capture" class="space-y-6 rounded-2xl p-4" style="background:#0d110f;">
+
     {{-- ═══ FANTASY TAB ═══ --}}
     @if($tab === 'fantasy')
         @php $rows = $this->fantasyStandings(); @endphp
@@ -371,6 +384,8 @@ new #[Layout('layouts.app'), Lazy] class extends Component {
             </div>
         </div>
     @endif
+
+    </div>{{-- /#lb-capture --}}
 
     @push('ads')
         @include('partials.propeller-ad')

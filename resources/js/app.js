@@ -20,6 +20,31 @@
 import Sortable from 'sortablejs';
 window.Sortable = Sortable;
 
+// ─── Export a DOM node to a downloadable PNG (self-hosted, works offline) ─────
+// Uses html-to-image (SVG foreignObject → the browser renders it), so Tailwind v4
+// oklch colours, gradients and CSS custom properties capture correctly — unlike
+// html2canvas which re-parses CSS and trips on modern colour functions.
+import { toPng } from 'html-to-image';
+
+window.exportElementAsImage = async function (elId, filename = 'pitchiq.png') {
+    const node = document.getElementById(elId);
+    if (!node) return;
+    try {
+        const dataUrl = await toPng(node, {
+            backgroundColor: '#0d110f', // solid dark bg so the PNG isn't transparent
+            pixelRatio: 2,              // crisp on retina / when zoomed
+            cacheBust: true,
+        });
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = dataUrl;
+        link.click();
+    } catch (e) {
+        console.error('Image export failed:', e);
+        window.showAppError?.('Could not generate the image. Please try again.');
+    }
+};
+
 // ─── Squad Builder drag-and-drop ─────────────────────────────────────────────
 // Reinit Sortable only when the draggable item count changes (search/filter
 // added or removed rows). With wire:key on player rows, Livewire morphs them
